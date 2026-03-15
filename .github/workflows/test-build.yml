@@ -157,6 +157,7 @@ jobs:
                   ;;
                 i686)
                   tail="mingw-w64-i686-mcfgthread-${ver}-1-any.pkg.tar.zst"
+                  ;;
                 *)
                   error "未知的架构: ${arch}"
                   exit 1
