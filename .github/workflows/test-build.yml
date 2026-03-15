@@ -338,3 +338,10 @@ jobs:
           ls -l ${PREFIX}/${TARGET}/bin
           ls -l ${PREFIX}/${TARGET}/lib
           ls -l ${PREFIX}/lib
+
+      - name: upload logs
+        if: always() || cancelled() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-msys2-logs
+          path: "${{ github.workspace }}/logs"
