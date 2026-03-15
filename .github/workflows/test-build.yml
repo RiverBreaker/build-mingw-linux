@@ -340,6 +340,464 @@ jobs:
           ls -l ${PREFIX}/${TARGET}/lib
           ls -l ${PREFIX}/lib
 
+      - name: Build native
+        shell: bash
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+
+          # params / tuning
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
+          export BUILD_DIR="${GITHUB_WORKSPACE}/build-native"
+          export CROSS_PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
+          export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-native"
+          # export POSIX_DIR="${GITHUB_WORKSPACE}/winpthreads"
+
+          export BUILD="x86_64-pc-linux-gnu"
+          export HOST="x86_64-w64-mingw32"
+          export TARGET="x86_64-w64-mingw32"
+
+          # 定义子目录
+          export OPT_DIR="${PREFIX}/opt"
+          export TARGET_DIR="${PREFIX}/${TARGET}"
+          export SHARE_DIR="${PREFIX}/share"
+
+          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+
+          export CFLAGS="-O2 -pipe -fno-ident"
+          export CXXFLAGS="${CFLAGS}"
+          export LDFLAGS="-pipe -fno-ident"
+          export CPPFLAGS=""
+
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=300
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          # 创建所有必要的目录
+          for d in "${BUILD_DIR}" "${PREFIX}" "${OPT_DIR}" "${SHARE_DIR}" "${TARGET_DIR}"; do
+            if [ -d "${d}" ]; then
+              run "清理目录 ${d}" rm -rf "${d}"
+            fi
+            run "创建目录 ${d}" mkdir -p "${d}"
+          done
+
+          cd "${BUILD_DIR}"
+
+          # triples and PATH (use cross toolchain to build mingw-native artifacts)
+          export PATH="${CROSS_PREFIX}/bin:${PATH}"
+
+          # 工具链编译器
+          export CC="${CROSS_PREFIX}/bin/${TARGET}-gcc"
+          export CXX="${CROSS_PREFIX}/bin/${TARGET}-g++"
+          export LD="${CROSS_PREFIX}/bin/${TARGET}-ld"
+          export AR="${CROSS_PREFIX}/bin/${TARGET}-ar"
+          export AS="${CROSS_PREFIX}/bin/${TARGET}-as"
+          export RANLIB="${CROSS_PREFIX}/bin/${TARGET}-ranlib"
+          export STRIP="${CROSS_PREFIX}/bin/${TARGET}-strip"
+          export WINDRES="${CROSS_PREFIX}/bin/${TARGET}-windres"
+          export FC="${CROSS_PREFIX}/bin/${TARGET}-gfortran"
+
+          # =========== 2. libiconv (安装到 ${PREFIX}) ===========
+          # libiconv (Windows原生版本)
+          run "准备 libiconv build dir" mkdir -p "${BUILD_DIR}/libiconv-build"
+          cd "${BUILD_DIR}/libiconv-build"
+          run "libiconv: configure" "${SOURCE_CODE_DIR}/libiconv/configure" \
+            --prefix="${TARGET_DIR}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --enable-static \
+            --disable-shared \
+            --disable-nls \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+          run "libiconv: make" make -j$(nproc)
+          run "libiconv: make install" make install
+
+          # =========== build zlib static ======================
+          run "准备 zlib build dir" mkdir -p "${BUILD_DIR}/zlib-build"
+          cd "${BUILD_DIR}/zlib-build"
+          run "zlib: configure" "${SOURCE_CODE_DIR}/zlib/configure" \
+            --prefix="${OPT_DIR}" \
+            --static
+          run "zlib: make" make -j$(nproc)
+          run "zlib: make install" make install
+
+          export CFLAGS="${CFLAGS} -I${OPT_DIR}/include"
+          export CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include"
+          export LDFLAGS="${LDFLAGS} -L${OPT_DIR}/lib"
+          export CPPFLAGS="${CPPFLAGS} -I${OPT_DIR}/include"
+
+          # 这些是gcc的直接依赖，需要安装在主目录
+          for d in gmp mpfr mpc isl; do
+            run "准备 ${d} build dir" mkdir -p "${BUILD_DIR}/${d}-build"
+            cd "${BUILD_DIR}/${d}-build"
+
+            DEP_FLAGS=""
+            if [[ "$d" == "mpfr" ]]; then
+              DEP_FLAGS="--with-gmp=${PREFIX}"
+            elif [[ "$d" == "mpc" ]]; then
+              DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
+            elif [[ "$d" == "isl" ]]; then
+              DEP_FLAGS="--with-gmp-prefix=${PREFIX}"
+            fi
+
+            run "${d}: configure" "${SOURCE_CODE_DIR}/${d}/configure" \
+              --prefix="${PREFIX}" \
+              --host="${HOST}" \
+              --build="${BUILD}" \
+              ${DEP_FLAGS} \
+              --enable-static \
+              --disable-shared \
+              CFLAGS="${CFLAGS}" \
+              CXXFLAGS="${CXXFLAGS}" \
+              LDFLAGS="${LDFLAGS}" \
+              CPPFLAGS="${CPPFLAGS}"
+
+            run "${d}: make" make -j$(nproc)
+            run "${d}: make install" make install
+          done
+
+          # =========== 3. mingw-w64 头文件 (安装到 ${TARGET_DIR}) ===========
+          run "准备 mingw-headers build dir" mkdir -p "${BUILD_DIR}/mingw-headers-build"
+          cd "${BUILD_DIR}/mingw-headers-build"
+          run "mingw-headers: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-headers/configure" \
+            --prefix="${TARGET_DIR}" \
+            --host="${TARGET}" \
+            --build="${BUILD}" \
+            --enable-sdk=all \
+            --enable-secure-api \
+            --enable-idl \
+            --disable-multilib \
+            --with-default-msvcrt=ucrt \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+          run "mingw-headers: make" make -j$(nproc)
+          run "mingw-headers: install" make install
+
+          # ensure include symlink
+          run "ensure mingw include symlink" bash -lc 'mkdir -p "'"${TARGET_DIR}/mingw"'" && ln -sfn "'"${TARGET_DIR}/include"'" "'"${TARGET_DIR}/mingw/include"'"'
+
+           # =========== 5. mingw-w64 CRT (安装到 ${TARGET_DIR}) ===========
+          run "准备 mingw-crt build dir" mkdir -p "${BUILD_DIR}/mingw-crt-build"
+          cd "${BUILD_DIR}/mingw-crt-build"
+          run "mingw-crt: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-crt/configure" \
+            --prefix="${TARGET_DIR}" \
+            --host="${TARGET}" \
+            --build="${BUILD}" \
+            --with-sysroot="${TARGET_DIR}" \
+            --disable-multilib \
+            --with-default-msvcrt=ucrt \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+          run "mingw-crt: make" make -j$(nproc)
+          run "mingw-crt: install" make install
+
+          # =========== mingw-w64-winpthreads =================
+          run "准备 mingw-w64-winpthreads build dir" mkdir -p "${BUILD_DIR}/mingw-w64-winpthreads-build"
+          cd "${BUILD_DIR}/mingw-w64-winpthreads-build"
+          run "mingw-w64-winpthreads: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-libraries/winpthreads/configure" \
+            --prefix="${TARGET_DIR}" \
+            --host="${TARGET}" \
+            --build="${BUILD}" \
+            --with-sysroot="${TARGET_DIR}" \
+            --enable-static \
+            --enable-shared \
+            --disable-multilib \
+            --with-default-msvcrt=ucrt \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+
+          run "mingw-w64-winpthreads: make" make -j$(nproc)
+          run "mingw-w64-winpthreads: install" make install
+
+          # =========== 2. binutils (安装到 ${PREFIX}) ===========
+          run "准备 binutils build dir" mkdir -p "${BUILD_DIR}/binutils-build"
+          cd "${BUILD_DIR}/binutils-build"
+          run "binutils: configure" "${SOURCE_CODE_DIR}/binutils/configure" \
+            --prefix="${PREFIX}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --target="${TARGET}" \
+            --disable-werror \
+            --enable-lto \
+            --enable-plugins \
+            --with-sysroot="${TARGET_DIR}" \
+            --enable-install-libiberty \
+            --disable-nls \
+            --disable-rpath \
+            --enable-host-shared=no \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+          run "binutils: make" make -j$(nproc)
+          run "binutils: make install" make install
+
+          # =========== 12. mingw-w64 其他库 ===========
+          # libmangle (安装到 ${TARGET_DIR})
+          run "准备 mingw-w64-libmangle build dir" mkdir -p "${BUILD_DIR}/mingw-w64-libmangle-build"
+          cd "${BUILD_DIR}/mingw-w64-libmangle-build"
+          run "mingw-w64-libmangle: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-libraries/libmangle/configure" \
+            --prefix="${TARGET_DIR}" \
+            --host="${TARGET}" \
+            --build="${BUILD}" \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+          run "mingw-w64-libmangle: make" make -j$(nproc)
+          run "mingw-w64-libmangle: install" make install
+
+          # tools (包含 widl 等工具，安装到 ${PREFIX})
+          for p in gendef genidl genpeimg widl; do
+            run "准备 mingw-w64-tools ${p} build dir" mkdir -p "${BUILD_DIR}/mingw-w64-tools-${p}-build"
+            cd "${BUILD_DIR}/mingw-w64-tools-${p}-build"
+            run "mingw-w64-tools: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-tools/${p}/configure" \
+              --prefix="${PREFIX}" \
+              --host="${HOST}" \
+              --build="${BUILD}" \
+              --with-sysroot="${TARGET_DIR}" \
+              CFLAGS="${CFLAGS}" \
+              CXXFLAGS="${CXXFLAGS}" \
+              LDFLAGS="${LDFLAGS}" \
+              CPPFLAGS="${CPPFLAGS}"
+            run "mingw-w64-tools ${p} : make" make -j$(nproc)
+            run "mingw-w64-tools ${p} : install" make install
+          done
+
+          # =========== 13. gcc 第二阶段 (完整版本) ===========
+          run "恢复使用新构建的binutils" export PATH="${PREFIX}/bin:${PATH}"
+          run "准备 gcc stage2 build dir" mkdir -p "${BUILD_DIR}/gcc2-build"
+          cd "${BUILD_DIR}/gcc2-build"
+          # info "取消 cross 工具链环境变量"
+          # unset CC CXX LD AR AS RANLIB
+          run "gcc stage2: configure" "${SOURCE_CODE_DIR}/gcc/configure" \
+            --prefix="${PREFIX}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --target="${TARGET}" \
+            --enable-languages=c,c++,fortran \
+            --enable-shared \
+            --enable-static \
+            --enable-threads=posix \
+            --enable-lto \
+            --enable-plugins \
+            --with-default-msvcrt=ucrt \
+            --disable-nls \
+            --disable-multilib \
+            --with-gmp="${PREFIX}" \
+            --with-mpfr="${PREFIX}" \
+            --with-mpc="${PREFIX}" \
+            --with-isl="${PREFIX}" \
+            --with-system-zlib \
+            --with-sysroot="${TARGET_DIR}" \
+            --with-boot-ldflags="-Wl,--disable-dynamicbase -static-libstdc++ -static-libgcc" \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            LDFLAGS="${LDFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}"
+
+          run "gcc stage2: make" make -j$(nproc)
+          run "gcc stage2: make install" make install-strip
+          cp "${TARGET_DIR}/bin/libwinpthread-1.dll" "${PREFIX}/bin"
+
+          export BASE_CFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
+          export BASE_CXXFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
+          export BASE_CPPFLAGS="-I${TARGET_DIR}/include -I${OPT_DIR}/include"
+          export BASE_LDFLAGS="-L${TARGET_DIR}/lib -L${OPT_DIR}/lib"
+
+          # bzip2
+          run "bzip2 build dir" mkdir -p "${BUILD_DIR}/bzip2-build"
+          cd "${BUILD_DIR}/bzip2-build"
+          run "bzip2 configure" "${SOURCE_CODE_DIR}/bzip2/configure" \
+          --build="${BUILD}" \
+          --host="${HOST}" \
+          --target="${HOST}" \
+          --prefix="${OPT_DIR}" \
+          --disable-shared \
+          --enable-static \
+          CFLAGS="${BASE_CFLAGS}" \
+          CXXFLAGS="${BASE_CXXFLAGS}" \
+          CPPFLAGS="${BASE_CPPFLAGS}" \
+          LDFLAGS="${BASE_LDFLAGS}"
+          run "bzip2 make" make -j$(nproc)
+          run "bzip2 install" make install
+
+          # ============ libffi
+          run "准备 libffi build dir" mkdir -p "${BUILD_DIR}/libffi-build"
+          cd "${BUILD_DIR}/libffi-build"
+          run "libffi configure" "${SOURCE_CODE_DIR}/libffi/configure" \
+            --prefix="${OPT_DIR}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --target="${TARGET}" \
+            --enable-shared --disable-static \
+              CFLAGS="${BASE_CFLAGS}" \
+              CXXFLAGS="${BASE_CXXFLAGS}" \
+              CPPFLAGS="${BASE_CPPFLAGS}" \
+              LDFLAGS="${BASE_LDFLAGS}"
+          run "libffi make" make -j$(nproc)
+          run "libffig make install" make install
+
+          # =========== 构建expat
+          run "准备 expat build dir" mkdir -p "${BUILD_DIR}/expat-build"
+          cd "${BUILD_DIR}/expat-build"
+          run "expat: configure" "${SOURCE_CODE_DIR}/expat/configure" \
+            --prefix="${OPT_DIR}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --enable-static \
+            --disable-shared \
+            --without-docbook \
+            --without-xmlwf \
+            CFLAGS="${BASE_CFLAGS}" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CPPFLAGS="${BASE_CPPFLAGS}" \
+            LDFLAGS="${BASE_LDFLAGS}"
+          run "expat: make" make -j$(nproc)
+          run "expat: make install" make install
+
+          # =========== 构建ncurses
+          run "准备 ncurses build dir" mkdir -p "${BUILD_DIR}/ncurses-build"
+          cd "${BUILD_DIR}/ncurses-build"
+          run "ncurses: configure" "${SOURCE_CODE_DIR}/ncurses/configure" \
+            --prefix="${OPT_DIR}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --without-ada --with-cxx \
+            --without-pthread --enable-pc-files \
+            --with-pkg-config \
+            --with-pkg-config-libdir=${OPT_DIR}/lib/pkgconfig \
+            --disable-rpath --enable-colorfgbg \
+            --disable-symlinks --enable-warnings \
+            --enable-assertions --disable-home-terminfo \
+            --enable-database --enable-sp-funcs \
+            --enable-term-driver --enable-interop --enable-widec --without-trace \
+            CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ACCESS" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CPPFLAGS="${BASE_CPPFLAGS} " \
+            LDFLAGS="${BASE_LDFLAGS}"
+
+          run "ncurses: make" make -j$(nproc)
+          run "ncurses: make install" make install
+
+          # readline
+          run "准备 readline build dir" mkdir -p "${BUILD_DIR}/readline-build"
+          cd ${SOURCE_CODE_DIR}/readline && patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
+          cd "${BUILD_DIR}/readline-build"
+          run "readline configure" "${SOURCE_CODE_DIR}/readline/configure" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --target="${TARGET}" \
+            --prefix="${OPT_DIR}" --disable-shared --enable-static --without-curses \
+            CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            CXXFLAGS="${BASE_CXXFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            CPPFLAGS="${BASE_CPPFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            LDFLAGS="${BASE_LDFLAGS}"
+          run "readline make" make -j$(nproc)
+          run "readline make install" make install
+
+          # gdbm
+          run "gdbm build dir mk" mkdir -p "${BUILD_DIR}/gdbm-build"
+          cd ${SOURCE_CODE_DIR}/gdbm && patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
+          autoreconf -fi
+          cd "${BUILD_DIR}/gdbm-build"
+          run "gdbm configure" "${SOURCE_CODE_DIR}/gdbm/configure" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --target="${TARGET}" \
+            --prefix="${OPT_DIR}" --disable-shared --enable-static --enable-libgdbm-compat \
+            CFLAGS="${BASE_CFLAGS} -fcommon" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CPPFLAGS="${BASE_CPPFLAGS}" \
+            LDFLAGS="${BASE_LDFLAGS}"
+          run "gdbm make" make -j$(nproc)
+          run "gdbm make install" make install
+
+          #openssl
+          run "openssl build dir mk" mkdir -p "${BUILD_DIR}/openssl-build"
+          cd "${BUILD_DIR}/openssl-build"
+          run "openssl configure" "${SOURCE_CODE_DIR}/openssl/Configure" \
+            --prefix="${OPT_DIR}" \
+            --libdir="${OPT_DIR}/lib" \
+            --openssldir="${OPT_DIR}/ssl" \
+            --with-zlib-include="${OPT_DIR}/include" \
+            --with-zlib-lib="${OPT_DIR}/lib" \
+            shared \
+            threads \
+            zlib \
+            enable-camellia enable-capieng \
+            enable-idea enable-mdc2 enable-rc5 \
+            enable-rfc3779 -D__MINGW_USE_VC2005_COMPAT \
+            -DOPENSSLBIN="${OPT_DIR}/bin" \
+            mingw64
+          run "openssl make" make -j$(nproc)
+          run "openssl make install" make install
+
+          #xz
+          run "xz build dir" mkdir -p "${BUILD_DIR}/xz-build"
+          cd "${BUILD_DIR}/xz-build"
+          run "xz configure" "${SOURCE_CODE_DIR}/xz/configure" \
+            --build="${BUILD}" \
+            --host="${HOST}" \
+            --target="${TARGET}" \
+            --prefix="${OPT_DIR}" \
+            --enable-static --disable-shared \
+            --disable-rpath --disable-lzma-links \
+            CFLAGS="${BASE_CFLAGS}" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CPPFLAGS="${BASE_CPPFLAGS}" \
+            LDFLAGS="${BASE_LDFLAGS}"
+          run "xz make" make -j$(nproc)
+          run "xz make install" make install
+
+          #sqlite
+          run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
+          cd "${BUILD_DIR}/sqlite-build"
+          run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
+            --build="${BUILD}" \
+            --host="${HOST}" \
+            --target="${TARGET}" \
+            --prefix="${OPT_DIR}" \
+            --enable-threadsafe \
+            --enable-shared \
+            --disable-static \
+            CFLAGS="${BASE_CFLAGS}" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CPPFLAGS="${BASE_CPPFLAGS} -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_RTREE" \
+            LDFLAGS="${BASE_LDFLAGS}"
+          run "sqlite make" make -j$(nproc)
+          run "sqlite install" make install
+
+          cd "${PREFIX}" || exit 1
+
+          echo "== Strip exe / dll =="
+          find . -type f \( -name '*.exe' -o -name '*.dll' \) -print0 |
+            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-unneeded || true
+
+          echo "== Strip static libraries =="
+          find . -type f -name '*.a' -print0 |
+            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-debug || true
+
+          echo "== Remove libtool artifacts =="
+          find . -type f -name '*.la' -delete
+
+          echo "== Remove stray debug files (if any) =="
+          find . -type f -name '*.debug' -delete
+
       - name: upload logs
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
