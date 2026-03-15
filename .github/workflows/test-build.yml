@@ -2,11 +2,18 @@ name: The First Test Build For Mingw-w64 From Linux To Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      gcc-version:
+        description: 'GCC Version'
+        required: true
+        default: '13.2.0'
 
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -324,3 +331,10 @@ jobs:
           # 最后：生成聚合 summary 并打印路径（actions 后续可上传）
           agg="$(aggregate_all_summaries)"
           info "聚合摘要已写入：$agg"
+
+          ls -l ${PREFIX}
+          ls -l ${PREFIX}/bin
+          ls -l ${PREFIX}/${TARGET}
+          ls -l ${PREFIX}/${TARGET}/bin
+          ls -l ${PREFIX}/${TARGET}/lib
+          ls -l ${PREFIX}/lib
