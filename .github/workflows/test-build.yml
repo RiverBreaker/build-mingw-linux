@@ -421,13 +421,16 @@ jobs:
           run "libiconv: make install" make install
 
           # =========== build zlib static ======================
-          run "准备 zlib build dir" mkdir -p "${BUILD_DIR}/zlib-build"
-          cd "${BUILD_DIR}/zlib-build"
-          run "zlib: configure" "${SOURCE_CODE_DIR}/zlib/configure" \
-            --prefix="${OPT_DIR}" \
-            --static --shared
-          run "zlib: make" make -j$(nproc)
-          run "zlib: make install" make install
+          cd "${SOURCE_CODE_DIR}/zlib"
+          run "zlib: build and install" make -f win32/Makefile.gcc install \
+            PREFIX="${HOST}-" \
+            SHARED_MODE=1 \
+            DESTDIR="" \
+            BINARY_PATH="${OPT_DIR}/bin" \
+            INCLUDE_PATH="${OPT_DIR}/include" \
+            LIBRARY_PATH="${OPT_DIR}/lib" \
+            CFLAGS="${CFLAGS}" \
+            LDFLAGS="${LDFLAGS}"
 
           export CFLAGS="${CFLAGS} -I${OPT_DIR}/include"
           export CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include"
