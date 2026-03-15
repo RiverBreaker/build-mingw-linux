@@ -1,0 +1,326 @@
+name: The First Test Build For Mingw-w64 From Linux To Windows
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Get System Dependencies
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          FORCE_COLOR: '1'
+        run: |
+          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          mkdir -p "${LOG_DIR}"
+          source "$GITHUB_WORKSPACE/scripts/functions/functions.sh"
+
+          export DEBIAN_FRONTEND=noninteractive
+
+          run "apt-get update" sudo apt-get update -y
+          pkgs=(
+            build-essential
+            automake
+            gettext
+            autopoint
+            pkg-config
+            autoconf
+            autoconf-archive
+            libtool
+            m4
+            liblzma-dev
+            nasm
+            libgmp-dev
+            libmpfr-dev
+            libmpc-dev
+            libisl-dev
+            zlib1g-dev
+            python3
+            python3-dev
+            tcl
+            tcl-dev
+          )
+          for p in "${pkgs[@]}"; do
+            install_pkg "安装${p}" "$p"
+          done
+          info "完成"
+
+      - name: Download Source Code
+        shell: bash
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+          LOG_DIR: "${{ github.workspace }}/logs"
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+
+          info "GCC 版本: ${GCC_VERSION}"
+          DEP_JSON_FILE="${GITHUB_WORKSPACE}/dependencies.json"
+          run "获取组件版本信息" export_versions_from_json "${DEP_JSON_FILE}" "${GCC_VERSION}" local
+
+          export GITHUB_BASE_URL="https://github.com"
+          export GNU_BASE_URL="https://ftp.gnu.org/gnu"
+          SQLITE_BASE_URL="https://sqlite.org"
+
+          # optional tuning
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=80
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code" && mkdir -p "${SOURCE_CODE_DIR}"
+
+          gnu_pkgs=( gcc binutils libiconv ncurses readline gdbm )
+          github_pkgs=( mingw-w64 zlib xz openssl libffi expat bzip2 )
+
+          for p in "${gnu_pkgs[@]}";do
+            if [[ "${p}" == "gcc" ]]; then
+              ver="${GCC_VERSION}"
+              echo "下载${p} 源码版本: ${ver}"
+              run "下载${p}-${ver} 源码" curl_download "${GNU_BASE_URL}/${p}/${p}-${ver}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              # for d in gcc gmp mpfr mpc isl; do
+              #   du -sh "${SOURCE_CODE_DIR}/${d}"
+              # done
+            else
+              val="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
+              ver=${!val}
+              run "下载${p}-${ver} 源码" curl_download "${GNU_BASE_URL}/${p}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              # du -sh "${SOURCE_CODE_DIR}/${p}"
+            fi
+          done
+          for p in "${github_pkgs[@]}";do
+            case "${p}" in
+              mingw-w64)
+                ver="${MINGW_W64}"
+                github_author="mingw-w64"
+                project_name="mingw-w64"
+                ;;
+              zlib)
+                ver="${ZLIB}"
+                github_author="madler"
+                project_name="zlib"
+                ;;
+              xz)
+                ver="${XZ}"
+                github_author="tukaani-project"
+                project_name="xz"
+                ;;
+              openssl|libffi)
+                pkg_name=${p^^}
+                ver="${!pkg_name}"
+                github_author="${p}"
+                project_name="${p}"
+                ;;
+              expat)
+                ver="${EXPAT}"
+                github_author="libexpat"
+                project_name="libexpat"
+                ;;
+              bzip2)
+                ver="${BZIP2_VER}"
+                github_author="RiverBreaker"
+                project_name="bzip2-autoconf"
+                ;;
+              *)
+                error "未知的 GitHub 包: ${p}"
+                exit 1
+                ;;
+            esac
+            if [[ "${p}" == "expat" ]] || [[ "${p}" == "libffi" ]] || [[ "${p}" == "openssl" ]] || [[ "${p}" == "xz" ]]; then
+              tail="${p}-${ver}.tar.gz"
+            elif [[ "${p}" == "bzip2" ]]; then
+              tail="${p}-autoconf-${ver}.tar.gz"
+            elif [[ "${p}" == "mcfgthread" ]]; then
+              case arch in
+                x86_64)
+                  if [[ "${{ matrix.crt }}" == "ucrt" ]];then
+                    tail="mingw-w64-ucrt-x86_64-mcfgthread-${ver}-1-any.pkg.tar.zst"
+                  else
+                    tail="mingw-w64-x86_64-mcfgthread-${ver}-1-any.pkg.tar.xz"
+                  fi
+                  ;;
+                i686)
+                  tail="mingw-w64-i686-mcfgthread-${ver}-1-any.pkg.tar.zst"
+                *)
+                  error "未知的架构: ${arch}"
+                  exit 1
+                  ;;
+              esac
+            else
+              tail="v${ver}.tar.gz" # cpython-mingw zlib ninja
+            fi
+            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]]; then
+              TAG="v${ver}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
+            elif [[ "${p}" == "expat" ]]; then
+              EXPAT_TAG="R_${ver//./_}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${EXPAT_TAG}/${tail}"
+            elif [[ "${p}" == "mcfgthread" ]]; then
+              MCF_TAG="${ver%.*}-ga.${ver##*.}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${MCF_TAG}/${tail}"
+            else
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/archive/refs/tags/${tail}"
+            fi
+            run "下载${p}-${ver} 源码" curl_download "${URL}" "${SOURCE_CODE_DIR}"
+            run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${tail}" "${SOURCE_CODE_DIR}"
+          done
+          run "下载 sqlite 源码" curl_download "${SQLITE_BASE_URL}/${SQLITE_YEAR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
+          run "解压 sqlite 源码" archive_extract sqlite "${SOURCE_CODE_DIR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
+          run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
+          info "下载与解压步骤完成"
+
+      - name: Build cross
+        shell: bash
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions.sh"
+
+          # tuning
+          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=120
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
+          export BUILD_DIR="${GITHUB_WORKSPACE}/build-cross"
+          export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
+
+          # prepare dirs
+          for d in "${BUILD_DIR}" "${PREFIX}"; do
+            if [ -d "${d}" ]; then
+              run "清理目录 ${d}" rm -rf "${d}"
+            fi
+            run "创建目录 ${d}" mkdir -p "${d}"
+          done
+
+          cd "${BUILD_DIR}"
+
+          export BUILD="x86_64-pc-linux-gnu"
+          export HOST="x86_64-pc-linux-gnu"
+          export TARGET="x86_64-w64-mingw32"
+
+          pkgs=( binutils libiconv make termcap ncurses readline gdbm gdb python openssl sqlite ninja cmake libffi pkgconf expat )
+          info "准备清理环境变量"
+          for p in "${pkgs[@]}"; do
+            val="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
+            unset "${val}"
+          done
+          unset MINGW_W64 gcc_version
+
+          # binutils
+          run "构建 binutils: configure" mkdir -p "${BUILD_DIR}/binutils-build"
+          cd "${BUILD_DIR}/binutils-build"
+          run "binutils: configure" "${SOURCE_CODE_DIR}/binutils/configure" \
+            --prefix="${PREFIX}" \
+            --target="${TARGET}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --disable-multilib \
+            --disable-werror
+          run "binutils: make" make -j$(nproc)
+          run "binutils: make install" make install
+
+          export PATH="${PREFIX}/bin:${PATH}"
+
+          # mingw headers
+          run "构建 mingw-w64 headers: setup dir" mkdir -p "${BUILD_DIR}/mingw-headers-build"
+          cd "${BUILD_DIR}/mingw-headers-build"
+          run "mingw-headers: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-headers/configure" --prefix="${PREFIX}/${TARGET}" --host="${TARGET}" --build="${BUILD}" --enable-sdk=all --enable-secure-api --enable-idl --disable-multilib
+          run "mingw-headers: make" make -j$(nproc)
+          run "mingw-headers: install" make install
+          run "ls prefix target dir" ls -l "${PREFIX}/${TARGET}/"
+          run "ensure mingw include symlink" bash -lc 'mkdir -p "'"${PREFIX}/${TARGET}/mingw"'" && ln -sfn "'"${PREFIX}/${TARGET}/include"'" "'"${PREFIX}/${TARGET}/mingw/include"'"'
+
+          # gcc stage1
+          run "准备 gcc stage1 build dir" mkdir -p "${BUILD_DIR}/gcc-stage1-build"
+          cd "${BUILD_DIR}/gcc-stage1-build"
+          run "gcc stage1: configure" "${SOURCE_CODE_DIR}/gcc/configure" \
+            --prefix="${PREFIX}" \
+            --target="${TARGET}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --disable-multilib \
+            --enable-languages=c \
+            --without-headers \
+            --disable-shared \
+            --disable-threads \
+            --disable-libatomic \
+            --disable-libgomp \
+            --disable-libquadmath \
+            --disable-libssp \
+            --disable-libvtv \
+            --disable-libstdcxx \
+            --disable-nls \
+            --with-gmp=/usr \
+            --with-mpfr=/usr \
+            --with-mpc=/usr \
+            --with-isl=/usr
+
+          run "gcc stage1: make all-gcc" make -j$(nproc) all-gcc
+          run "gcc stage1: install-gcc" make install-gcc
+
+          # mingw-crt
+          run "prepare mingw-crt build dir" mkdir -p "${BUILD_DIR}/mingw-crt-build"
+          cd "${BUILD_DIR}/mingw-crt-build"
+          run "mingw-crt: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-crt/configure" --prefix="${PREFIX}/${TARGET}" --host="${TARGET}" --build="${BUILD}" --disable-multilib --with-sysroot="${PREFIX}/${TARGET}"
+          run "mingw-crt: make" make -j$(nproc)
+          run "mingw-crt: install" make install
+
+          # gcc full build
+          # set cross toolchain env
+          export CC="gcc"
+          export CXX="g++"
+          export LD="ld"
+          export AR="ar"
+          export AS="as"
+          export RANLIB="ranlib"
+          run "准备 gcc full build dir" mkdir -p "${BUILD_DIR}/gcc-full-build"
+          cd "${BUILD_DIR}/gcc-full-build"
+          run "gcc full: configure" "${SOURCE_CODE_DIR}/gcc/configure" \
+            --prefix="${PREFIX}" \
+            --target="${TARGET}" \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --disable-multilib \
+            --enable-languages=c,c++,fortran \
+            --enable-threads=${{ matrix.threads }} \
+            --enable-shared \
+            --enable-static \
+            --with-sysroot="${PREFIX}/${TARGET}" \
+            --disable-nls \
+            --with-gmp=/usr \
+            --with-mpfr=/usr \
+            --with-mpc=/usr \
+            --with-isl=/usr
+
+          # set cross toolchain env
+          export CC="${PREFIX}/bin/${TARGET}-gcc"
+          export CXX="${PREFIX}/bin/${TARGET}-g++"
+          export LD="${PREFIX}/bin/${TARGET}-ld"
+          export AR="${PREFIX}/bin/${TARGET}-ar"
+          export AS="${PREFIX}/bin/${TARGET}-as"
+          export RANLIB="${PREFIX}/bin/${TARGET}-ranlib"
+          run "gcc full: make" make -j$(nproc)
+          run "gcc full: install" make install
+
+          info "交叉编译工具链构建完成！"
+          info "工具链已安装到：${PREFIX}"
+          run "清除构建目录以节省空间" rm -rf "${BUILD_DIR}"
+
+          # 最后：生成聚合 summary 并打印路径（actions 后续可上传）
+          agg="$(aggregate_all_summaries)"
+          info "聚合摘要已写入：$agg"
