@@ -425,7 +425,7 @@ jobs:
           cd "${BUILD_DIR}/zlib-build"
           run "zlib: configure" "${SOURCE_CODE_DIR}/zlib/configure" \
             --prefix="${OPT_DIR}" \
-            --static
+            --static --shared
           run "zlib: make" make -j$(nproc)
           run "zlib: make install" make install
 
@@ -766,6 +766,8 @@ jobs:
 
           #sqlite
           run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
+          cd ${SOURCE_CODE_DIR}/sqlite
+          run "sqlite autoreconf" autoreconf -fi
           cd "${BUILD_DIR}/sqlite-build"
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
@@ -804,3 +806,94 @@ jobs:
         with:
           name: build-msys2-logs
           path: "${{ github.workspace }}/logs"
+
+      - name: build cross python
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+
+          # params / tuning
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
+          export BUILD_DIR="${GITHUB_WORKSPACE}/build-native"
+          export CROSS_PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
+          export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-native"
+          # export POSIX_DIR="${GITHUB_WORKSPACE}/winpthreads"
+
+          export BUILD="x86_64-pc-linux-gnu"
+          export HOST="x86_64-w64-mingw32"
+          # export TARGET="x86_64-w64-mingw32"
+
+          # 定义子目录
+          export OPT_DIR="${PREFIX}/opt"
+          export TARGET_DIR="${PREFIX}/${HOST}"
+          export SHARE_DIR="${PREFIX}/share"
+          export PY_IN_DIR="${GITHUB_WORKSPACE}/py_prefix"
+
+          export LOG_DIR="${GITHUB_WORKSPACE}/build-python-logs"
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+
+          export CFLAGS="-O2 -pipe -fno-ident -I${OPT_DIR}/include"
+          export CXXFLAGS="${CFLAGS}"
+          export LDFLAGS="-L${OPT_DIR}/lib -pipe -fno-ident"
+          export CPPFLAGS="-I${OPT_DIR}/include"
+          export PKG_CONFIG_PATH="${OPT_DIR}/lib/pkgconfig:${OPT_DIR}/share/pkgconfig"
+
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=300
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          # 创建所有必要的目录
+          for d in "${BUILD_DIR}" "${PREFIX}" "${OPT_DIR}" "${SHARE_DIR}" "${TARGET_DIR}" "${PY_IN_DIR}"; do
+            if [ -d "${d}" ]; then
+              run "清理目录 ${d}" rm -rf "${d}"
+            fi
+            run "创建目录 ${d}" mkdir -p "${d}"
+          done
+
+          cd "${BUILD_DIR}"
+
+          # triples and PATH (use cross toolchain to build mingw-native artifacts)
+          export PATH="${CROSS_PREFIX}/bin:${PATH}"
+
+          # 工具链编译器
+          # export CC="${CROSS_PREFIX}/bin/${TARGET}-gcc"
+          # export CXX="${CROSS_PREFIX}/bin/${TARGET}-g++"
+          # export LD="${CROSS_PREFIX}/bin/${TARGET}-ld"
+          # export AR="${CROSS_PREFIX}/bin/${TARGET}-ar"
+          # export AS="${CROSS_PREFIX}/bin/${TARGET}-as"
+          # export RANLIB="${CROSS_PREFIX}/bin/${TARGET}-ranlib"
+          # export STRIP="${CROSS_PREFIX}/bin/${TARGET}-strip"
+          # export WINDRES="${CROSS_PREFIX}/bin/${TARGET}-windres"
+          # export FC="${CROSS_PREFIX}/bin/${TARGET}-gfortran"
+
+          # python
+          run "python build dir" mkdir -p "${BUILD_DIR}/python-build"
+          cd "${BUILD_DIR}/python-build"
+          run "python configure" "${SOURCE_CODE_DIR}/python/configure" \
+            --build="${BUILD}" \
+            --host="${HOST}" \
+            --prefix="${PY_IN_DIR}" \
+            --enable-shared \
+            --without-ensurepip \
+            --with-system-expat \
+            --with-system-ffi \
+            --with-openssl="${OPT_DIR}" \
+            --with-system-libmpdec \
+            --with-build-python="/usr/bin/python3"
+          run "python make" make -j$(nproc)
+          run "python make install" make install
+
+          ls -l "${PY_IN_DIR}/bin"
+          ls -l "${PY_IN_DIR}/lib"
+          info "Python 构建完成！"
+
+      - name: upload python logs
+        if: always() || cancelled() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-python-logs
+          path: "${{ github.workspace }}/build-python-logs"
