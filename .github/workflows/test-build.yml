@@ -810,6 +810,12 @@ jobs:
           name: build-msys2-logs
           path: "${{ github.workspace }}/logs"
 
+      - name: upload native toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw-w64-native
+          path: ${{ github.workspace }}/mingw-w64-native
+
       - name: build cross python
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
@@ -843,7 +849,9 @@ jobs:
           export CXXFLAGS="${CFLAGS}"
           export LDFLAGS="-L${OPT_DIR}/lib -pipe -fno-ident"
           export CPPFLAGS="-I${OPT_DIR}/include"
-          export PKG_CONFIG_PATH="${OPT_DIR}/lib/pkgconfig:${OPT_DIR}/share/pkgconfig"
+          # 使用 PKG_CONFIG_LIBDIR 强制只搜索交叉编译库目录
+          # 不使用 PKG_CONFIG_PATH，因为它会同时搜索系统目录
+          export PKG_CONFIG_LIBDIR="${OPT_DIR}/lib/pkgconfig"
 
           IGNORE_REGEX='array subscript 0 is outside array bounds'
           LOG_TAIL_LINES=300
