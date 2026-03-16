@@ -839,7 +839,7 @@ jobs:
           export OPT_DIR="${PREFIX}/opt"
           export TARGET_DIR="${PREFIX}/${HOST}"
           export SHARE_DIR="${PREFIX}/share"
-          export PY_IN_DIR="${GITHUB_WORKSPACE}/py_prefix"
+          export PY_IN_DIR="${OPT_DIR}"
 
           export LOG_DIR="${GITHUB_WORKSPACE}/build-python-logs"
           export FORCE_COLOR=1
@@ -913,3 +913,9 @@ jobs:
         with:
           name: build-python-logs
           path: "${{ github.workspace }}/build-python-logs"
+
+      - name: upload native toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw-w64-native-with-python
+          path: ${{ github.workspace }}/mingw-w64-native
