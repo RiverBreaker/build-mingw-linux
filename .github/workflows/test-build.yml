@@ -878,11 +878,7 @@ jobs:
           cd "${SOURCE_CODE_DIR}/python"
           run "python autogen" autoreconf -fi
           cd "${BUILD_DIR}/python-build"
-          run "python configure" \
-            MACHDEP=mingw \
-            ac_sys_system=MINGW \
-            ac_sys_release= \
-            "${SOURCE_CODE_DIR}/python/configure" \
+          run "python configure" "${SOURCE_CODE_DIR}/python/configure" \
             --build="${BUILD}" \
             --host="${HOST}" \
             --prefix="${PY_IN_DIR}" \
