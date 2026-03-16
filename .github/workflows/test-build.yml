@@ -875,6 +875,8 @@ jobs:
 
           # python
           run "python build dir" mkdir -p "${BUILD_DIR}/python-build"
+          cd "${SOURCE_CODE_DIR}/python"
+          run "python autogen" autoreconf -fi
           cd "${BUILD_DIR}/python-build"
           run "python configure" \
             MACHDEP=mingw \
