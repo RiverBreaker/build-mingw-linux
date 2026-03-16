@@ -825,7 +825,7 @@ jobs:
 
           # params / tuning
           export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
-          export BUILD_DIR="${GITHUB_WORKSPACE}/build-native"
+          export BUILD_DIR="${GITHUB_WORKSPACE}/build-native-python"
           export CROSS_PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
           export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-native"
           # export POSIX_DIR="${GITHUB_WORKSPACE}/winpthreads"
@@ -857,7 +857,7 @@ jobs:
           FAIL_ON_FATAL_IN_SUCCESS=1
 
           # 创建所有必要的目录
-          for d in "${BUILD_DIR}" "${PREFIX}" "${OPT_DIR}" "${SHARE_DIR}" "${TARGET_DIR}" "${PY_IN_DIR}"; do
+          for d in "${BUILD_DIR}" "${PY_IN_DIR}"; do
             if [ -d "${d}" ]; then
               run "清理目录 ${d}" rm -rf "${d}"
             fi
@@ -892,6 +892,7 @@ jobs:
             --enable-shared \
             --without-ensurepip \
             --with-system-ffi \
+            --with-system-expat \
             --with-openssl="${OPT_DIR}" \
             --with-build-python="/usr/bin/python3" \
             CFLAGS="${CFLAGS}" \
