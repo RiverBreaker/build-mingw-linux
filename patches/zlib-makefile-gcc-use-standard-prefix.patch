@@ -30,6 +30,7 @@
  LDFLAGS = $(LOC)
 
 -AR = $(PREFIX)ar
++
 +AR = $(HOST)-ar
  ARFLAGS = rcs
 
