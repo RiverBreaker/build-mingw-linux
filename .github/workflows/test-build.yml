@@ -887,7 +887,11 @@ jobs:
             --with-system-expat \
             --with-system-ffi \
             --with-openssl="${OPT_DIR}" \
-            --with-build-python="/usr/bin/python3"
+            --with-build-python="/usr/bin/python3" \
+            CFLAGS="${CFLAGS}" \
+            CXXFLAGS="${CXXFLAGS}" \
+            CPPFLAGS="${CPPFLAGS}" \
+            LDFLAGS="${LDFLAGS}"
           run "python make" make -j$(nproc)
           run "python make install" make install
 
