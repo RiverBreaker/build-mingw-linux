@@ -1,0 +1,57 @@
+--- a/win32/Makefile.gcc
++++ b/win32/Makefile.gcc
+@@ -29,24 +29,25 @@
+ # the DLL name should be changed from "zlib1.dll".
+
+ STATICLIB = libz.a
+ SHAREDLIB = zlib1.dll
+ IMPLIB    = libz.dll.a
+
+ #
+ # Set to 1 if shared object needs to be installed
+ #
+ SHARED_MODE=0
+
+ #LOC = -DZLIB_DEBUG -g
+
+-PREFIX =
+-CC = $(PREFIX)gcc
++HOST =
++CC = $(HOST)-gcc
+
+ CFLAGS = $(LOC) -O3 -Wall
+
+-AS = $(CC)
++AS = $(HOST)-gcc
+ ASFLAGS = $(LOC) -Wall
+
+-LD = $(CC)
++LD = $(HOST)-gcc
+ LDFLAGS = $(LOC)
+
+-AR = $(PREFIX)ar
++AR = $(HOST)-ar
+ ARFLAGS = rcs
+
+-RC = $(PREFIX)windres
++RC = $(HOST)-windres
+ RCFLAGS =
+
+-STRIP = $(PREFIX)strip
++STRIP = $(HOST)-strip
+
+ CP = cp -fp
+ # If GNU install is available, replace $(CP) with install.
+ INSTALL = $(CP)
+ RM = rm -f
+
+-prefix ?= /usr/local
+-exec_prefix = $(prefix)
++PREFIX ?= /usr/local
++exec_prefix = $(PREFIX)
++
++BINARY_PATH = $(PREFIX)/bin
++INCLUDE_PATH = $(PREFIX)/include
++LIBRARY_PATH = $(PREFIX)/lib
+
+ OBJS = adler32.o compress.o crc32.o deflate.o gzclose.o gzlib.o gzread.o \

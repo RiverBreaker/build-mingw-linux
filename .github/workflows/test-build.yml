@@ -422,13 +422,12 @@ jobs:
 
           # =========== build zlib static ======================
           cd "${SOURCE_CODE_DIR}/zlib"
+          run "zlib: apply patch" patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
           run "zlib: build and install" make -f win32/Makefile.gcc install \
-            PREFIX="${HOST}-" \
+            HOST="${HOST}" \
             SHARED_MODE=1 \
             DESTDIR="" \
-            BINARY_PATH="${OPT_DIR}/bin" \
-            INCLUDE_PATH="${OPT_DIR}/include" \
-            LIBRARY_PATH="${OPT_DIR}/lib" \
+            PREFIX="${OPT_DIR}" \
             CFLAGS="${CFLAGS}" \
             LDFLAGS="${LDFLAGS}"
 
