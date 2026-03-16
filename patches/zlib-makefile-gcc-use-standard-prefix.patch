@@ -1,17 +1,6 @@
 --- a/win32/Makefile.gcc
 +++ b/win32/Makefile.gcc
-@@ -28,22 +28,22 @@
- # Note:
- # If the platform is *not* MinGW (e.g. it is Cygwin or UWIN),
- # the DLL name should be changed from "zlib1.dll".
-
- STATICLIB = libz.a
- SHAREDLIB = zlib1.dll
- IMPLIB    = libz.dll.a
-
- #
- # Set to 1 if shared object needs to be installed
- #
+@@ -40,19 +40,20 @@
  SHARED_MODE=0
 
  #LOC = -DZLIB_DEBUG -g
@@ -43,6 +32,7 @@
 
  CP = cp -fp
  # If GNU install is available, replace $(CP) with install.
+@@ -60,8 +61,11 @@
  INSTALL = $(CP)
  RM = rm -f
 
@@ -56,3 +46,4 @@
 +LIBRARY_PATH = $(PREFIX)/lib
 
  OBJS = adler32.o compress.o crc32.o deflate.o gzclose.o gzlib.o gzread.o \
+        gzwrite.o infback.o inffast.o inflate.o inftrees.o trees.o uncompr.o zutil.o
