@@ -891,7 +891,6 @@ jobs:
             --prefix="${PY_IN_DIR}" \
             --enable-shared \
             --without-ensurepip \
-            --with-system-expat \
             --with-system-ffi \
             --with-openssl="${OPT_DIR}" \
             --with-build-python="/usr/bin/python3" \
