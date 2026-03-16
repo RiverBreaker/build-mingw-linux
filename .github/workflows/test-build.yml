@@ -889,7 +889,8 @@ jobs:
             --with-system-expat \
             --with-system-ffi \
             --with-openssl="${OPT_DIR}" \
-            --with-system-libmpdec
+            --with-system-libmpdec \
+            --with-build-python="/usr/bin/python3"
           run "python make" make -j$(nproc)
           run "python make install" make install
 
