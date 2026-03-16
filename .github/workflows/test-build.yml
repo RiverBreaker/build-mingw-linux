@@ -688,9 +688,10 @@ jobs:
             --enable-assertions --disable-home-terminfo \
             --enable-database --enable-sp-funcs \
             --enable-term-driver --enable-interop --enable-widec --without-trace \
+            --disable-shared --enable-static \
             CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ACCESS" \
             CXXFLAGS="${BASE_CXXFLAGS}" \
-            CPPFLAGS="${BASE_CPPFLAGS} " \
+            CPPFLAGS="${BASE_CPPFLAGS}" \
             LDFLAGS="${BASE_LDFLAGS}"
 
           run "ncurses: make" make -j$(nproc)
@@ -844,10 +845,10 @@ jobs:
           export FORCE_COLOR=1
           mkdir -p "${LOG_DIR}"
 
-          export CFLAGS="-O2 -pipe -fno-ident -I${OPT_DIR}/include"
-          export CXXFLAGS="${CFLAGS}"
+          export CFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include"
+          export CXXFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include"
           export LDFLAGS="-L${OPT_DIR}/lib -pipe -fno-ident"
-          export CPPFLAGS="-I${OPT_DIR}/include"
+          export CPPFLAGS="-DNCURSES_STATIC -I${OPT_DIR}/include"
           # 使用 PKG_CONFIG_LIBDIR 强制只搜索交叉编译库目录
           # 不使用 PKG_CONFIG_PATH，因为它会同时搜索系统目录
           export PKG_CONFIG_LIBDIR="${OPT_DIR}/lib/pkgconfig"
