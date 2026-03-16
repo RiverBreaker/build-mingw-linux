@@ -1,7 +1,6 @@
---- a/win32/Makefile.gcc
-+++ b/win32/Makefile.gcc
-@@ -40,19 +40,20 @@
- SHARED_MODE=0
+--- win32/Makefile.gcc	2026-03-16 22:57:27.014415600 +0800
++++ win32/Makefile.gcc	2026-03-16 22:58:43.521983900 +0800
+@@ -36,8 +36,8 @@
 
  #LOC = -DZLIB_DEBUG -g
 
@@ -11,12 +10,9 @@
 +CC = $(HOST)-gcc
  CFLAGS = $(LOC) -O3 -Wall
 
--AS = $(CC)
-+AS = $(HOST)-gcc
- ASFLAGS = $(LOC) -Wall
-
--LD = $(CC)
-+LD = $(HOST)-gcc
+ AS = $(CC)
+@@ -46,21 +46,25 @@
+ LD = $(CC)
  LDFLAGS = $(LOC)
 
 -AR = $(PREFIX)ar
@@ -25,14 +21,13 @@
 
 -RC = $(PREFIX)windres
 +RC = $(HOST)-windres
- RCFLAGS =
+ RCFLAGS = --define GCC_WINDRES
 
 -STRIP = $(PREFIX)strip
 +STRIP = $(HOST)-strip
 
  CP = cp -fp
  # If GNU install is available, replace $(CP) with install.
-@@ -60,8 +61,11 @@
  INSTALL = $(CP)
  RM = rm -f
 
