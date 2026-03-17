@@ -16,7 +16,7 @@
           "version": "3410000"
         },
         "openssl": "3.2.0",
-        "python": "3.12.5",
+        "python_version": "3.12.5",
         "bzip2_ver":"1.0.8",
         "expat": "2.5.0",
         "ncurses": "6.5",

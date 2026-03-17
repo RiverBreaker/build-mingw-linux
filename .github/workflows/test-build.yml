@@ -183,7 +183,7 @@ jobs:
           done
           run "下载 sqlite 源码" curl_download "${SQLITE_BASE_URL}/${SQLITE_YEAR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
           run "解压 sqlite 源码" archive_extract sqlite "${SOURCE_CODE_DIR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
-          run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
+          run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON_VERSION} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
           info "下载与解压步骤完成"
 
       - name: Build cross
@@ -918,4 +918,107 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mingw-w64-native-with-python
+          path: ${{ github.workspace }}/mingw-w64-native
+
+      - name: build gdb with python
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+
+          info "GCC 版本: ${GCC_VERSION}"
+          DEP_JSON_FILE="${GITHUB_WORKSPACE}/dependencies.json"
+          run "获取组件版本信息" export_versions_from_json "${DEP_JSON_FILE}" "${GCC_VERSION}" local
+
+          # params / tuning
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
+          export BUILD_DIR="${GITHUB_WORKSPACE}/build-native-python"
+          export CROSS_PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
+          export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-native"
+
+          export BUILD="x86_64-pc-linux-gnu"
+          export HOST="x86_64-w64-mingw32"
+          export TARGET="x86_64-w64-mingw32"
+
+          # 定义子目录
+          export OPT_DIR="${PREFIX}/opt"
+          export TARGET_DIR="${PREFIX}/${HOST}"
+          export SHARE_DIR="${PREFIX}/share"
+
+          export LOG_DIR="${GITHUB_WORKSPACE}/build-gdb-logs"
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+
+          export CFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include -I${TARGET_DIR}/include"
+          export CXXFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include -I${TARGET_DIR}/include"
+          export LDFLAGS="-L${OPT_DIR}/lib -pipe -fno-ident -L${TARGET_DIR}/lib"
+          export CPPFLAGS="-DNCURSES_STATIC -I${OPT_DIR}/include -I${TARGET_DIR}/include"
+          # 使用 PKG_CONFIG_LIBDIR 强制只搜索交叉编译库目录
+          # 不使用 PKG_CONFIG_PATH，因为它会同时搜索系统目录
+          export PKG_CONFIG_LIBDIR="${OPT_DIR}/lib/pkgconfig"
+
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=300
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          # 创建所有必要的目录
+          for d in "${BUILD_DIR}"; do
+            if [ -d "${d}" ]; then
+              run "清理目录 ${d}" rm -rf "${d}"
+            fi
+            run "创建目录 ${d}" mkdir -p "${d}"
+          done
+
+          cd "${BUILD_DIR}"
+
+          # triples and PATH (use cross toolchain to build mingw-native artifacts)
+          export PATH="${CROSS_PREFIX}/bin:${PATH}"
+
+          # 工具链编译器
+          export CC="${CROSS_PREFIX}/bin/${TARGET}-gcc"
+          export CXX="${CROSS_PREFIX}/bin/${TARGET}-g++"
+          export LD="${CROSS_PREFIX}/bin/${TARGET}-ld"
+          export AR="${CROSS_PREFIX}/bin/${TARGET}-ar"
+          export AS="${CROSS_PREFIX}/bin/${TARGET}-as"
+          export RANLIB="${CROSS_PREFIX}/bin/${TARGET}-ranlib"
+          export STRIP="${CROSS_PREFIX}/bin/${TARGET}-strip"
+          export WINDRES="${CROSS_PREFIX}/bin/${TARGET}-windres"
+          export FC="${CROSS_PREFIX}/bin/${TARGET}-gfortran"
+
+          # =========== 14. 构建 gdb (安装到 ${PREFIX}) ===========
+          run "准备gdb build dir" mkdir -p "${BUILD_DIR}/gdb-build"
+          cd "${BUILD_DIR}/gdb-build"
+          run "gdb configure" "${SOURCE_CODE_DIR}/gdb/configure" \
+            --build="${BUILD}" \
+            --host="${HOST}" \
+            --target="${TARGET}" \
+            --prefix="${PREFIX}" \
+            --enable-shared \
+            --with-python="${GITHUB_WORKSPACE}/scripts/gdb-python-config-mingw" \
+            --with-expat \
+            --with-libiconv="${PREFIX}" \
+            --with-zlib --enable-tui --disable-gdbtk \
+            --enable-64-bit-bfd --disable-nls \
+            --disable-werror --disable-win32-registry \
+            --disable-rpath \
+            CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -fcommon -D_WIN32_WINNT=0x0601" \
+            CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
+            CPPFLAGS="${CPPFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
+            LDFLAGS="${LDFLAGS}"
+          run "gdb make" make -j$(nproc)
+          run "gdb install" make install
+
+      - name: upload gdb logs
+        if: always() || cancelled() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-gdb-logs
+          path: "${{ github.workspace }}/build-gdb-logs"
+
+      - name: upload native toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw-w64-native-with-gdb
           path: ${{ github.workspace }}/mingw-w64-native
