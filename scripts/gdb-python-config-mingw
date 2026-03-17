@@ -1,25 +1,13 @@
 #!/bin/sh
 
-# This shell script is used to fake Python for cross-compiling GDB.
-# GDB wants to be passed a Python interpreter to run its own python-config.py
-# program, which uses sysconfig. However, when cross-compiling, this doesn't
-# work well since we would have to use the host Python, whose sysconfig module
-# would return host values.
+# This shell script is used to fake Python. Gdb wants to be passed a
+# Python interpreter, to run its own python-config.py program, which
+# uses sysconfig. However, when cross-compiling, this doesn't work
+# well since we would have to use the host Python, whose sysconfig
+# module would return host values.
 #
-# This wrapper script emulates python-config.py behavior for MinGW-w64
-# cross-compilation environment.
-#
-# Usage:
-#   ./gdb-python-config <path-to-python-config.py> <option>
-#
-# Environment variables:
-#   PYTHON_VERSION - Python version (e.g., "3.12"), defaults to "3.12"
-#   OPT_DIR        - Installation prefix for Python (default: derived from PREFIX)
-#   PREFIX         - Base prefix directory (default: /opt/mingw-w64-native)
-#
-# Based on BuildRoot's approach:
-# https://sourceware.org/gdb/wiki/CrossCompilingWithPythonSupport
-
+# This wrapper shell script ignores the python-config.py script passed
+# as the first argument, and "emulates" its behavior.
 set -e
 
 # Default values - adjust these for your environment
@@ -27,57 +15,31 @@ set -e
 PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
 # Extract major.minor version for paths and library names (3.12.5 -> 3.12)
 PYTHON_ABIVER=$(echo "${PYTHON_VERSION}" | cut -d. -f1,2)
-PREFIX="${PREFIX:-/opt/mingw-w64-native}"
-OPT_DIR="${OPT_DIR:-${PREFIX}/opt}"
 
-# Validate arguments
 if [ $# -ne 2 ]; then
-    echo "Usage: $0 <python-config.py-path> <option>" >&2
-    echo "Options: --includes, --ldflags, --exec-prefix" >&2
+    echo "Bad # args." >&2
     exit 1
 fi
 
-# The first argument is the path to python-config.py, we ignore it.
-# The second argument is the option we need to respond to.
+if [ -z "${PYTHON_ABIVER}" ]; then
+    echo "Environment variable PYTHON_ABIVER not set." >&2
+    exit 1
+fi
+
+# The first argument is the path to python-config.py, ignore it.
 
 case "$2" in
     --includes)
-        # Output include path for Python headers
         echo "-I${OPT_DIR}/include/python${PYTHON_ABIVER}"
         ;;
-
     --ldflags)
-        # Output linker flags for Python on MinGW-w64
-        # Note: On Windows, we link against the DLL import library
-        # -lpthread, -ldl, -lutil are Unix-specific and not needed for MinGW
         echo "-L${OPT_DIR}/lib -lpython${PYTHON_ABIVER}"
         ;;
-
     --exec-prefix)
-        # Return the exec-prefix path
         echo "/usr"
         ;;
-
-    --extension-suffix)
-        # Return the extension suffix for Python modules (.pyd on Windows)
-        echo ".pyd"
-        ;;
-
-    --prefix)
-        # Return the prefix path
-        echo "${OPT_DIR}"
-        ;;
-
-    --config-dir)
-        # Return the config directory
-        echo "${OPT_DIR}/lib/python${PYTHON_ABIVER}/config-${PYTHON_ABIVER}"
-        ;;
-
     *)
-        echo "Error: Unknown option '$2'" >&2
-        echo "Supported options: --includes, --ldflags, --exec-prefix, --extension-suffix, --prefix, --config-dir" >&2
+        echo "Bad arg $2." >&2
         exit 1
         ;;
 esac
-
-exit 0
