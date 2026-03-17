@@ -23,7 +23,10 @@
 set -e
 
 # Default values - adjust these for your environment
+# PYTHON_VERSION can be full version (e.g., 3.12.5) or short (e.g., 3.12)
 PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
+# Extract major.minor version for paths and library names (3.12.5 -> 3.12)
+PYTHON_ABIVER=$(echo "${PYTHON_VERSION}" | cut -d. -f1,2)
 PREFIX="${PREFIX:-/opt/mingw-w64-native}"
 OPT_DIR="${OPT_DIR:-${PREFIX}/opt}"
 
@@ -40,14 +43,14 @@ fi
 case "$2" in
     --includes)
         # Output include path for Python headers
-        echo "-I${OPT_DIR}/include/python${PYTHON_VERSION}"
+        echo "-I${OPT_DIR}/include/python${PYTHON_ABIVER}"
         ;;
 
     --ldflags)
         # Output linker flags for Python on MinGW-w64
         # Note: On Windows, we link against the DLL import library
         # -lpthread, -ldl, -lutil are Unix-specific and not needed for MinGW
-        echo "-L${OPT_DIR}/lib -lpython${PYTHON_VERSION}"
+        echo "-L${OPT_DIR}/lib -lpython${PYTHON_ABIVER}"
         ;;
 
     --exec-prefix)
@@ -67,7 +70,7 @@ case "$2" in
 
     --config-dir)
         # Return the config directory
-        echo "${OPT_DIR}/lib/python${PYTHON_VERSION}/config-${PYTHON_VERSION}"
+        echo "${OPT_DIR}/lib/python${PYTHON_ABIVER}/config-${PYTHON_ABIVER}"
         ;;
 
     *)
