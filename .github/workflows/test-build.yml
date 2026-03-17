@@ -1011,6 +1011,11 @@ jobs:
           run "gdb make" make -j$(nproc)
           run "gdb install" make install
 
+          [[ ! -f $PREFIX/bin/gdborig.exe ]] && {
+            mv $PREFIX/bin/gdb.exe $PREFIX/bin/gdborig.exe
+          }
+          $CC -o $PREFIX/bin/gdb.exe $GITHUB_WORKSPACE/scripts/gdb-wrapper.c -U_DEBUG
+
       - name: upload gdb logs
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
