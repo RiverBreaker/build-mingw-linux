@@ -858,7 +858,7 @@ jobs:
           FAIL_ON_FATAL_IN_SUCCESS=1
 
           # 创建所有必要的目录
-          for d in "${BUILD_DIR}" "${PY_IN_DIR}"; do
+          for d in "${BUILD_DIR}"; do
             if [ -d "${d}" ]; then
               run "清理目录 ${d}" rm -rf "${d}"
             fi
