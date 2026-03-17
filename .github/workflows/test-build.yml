@@ -84,7 +84,7 @@ jobs:
 
           export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code" && mkdir -p "${SOURCE_CODE_DIR}"
 
-          gnu_pkgs=( gcc binutils libiconv ncurses readline gdbm )
+          gnu_pkgs=( gcc binutils libiconv ncurses readline gdbm gdb )
           github_pkgs=( mingw-w64 zlib xz openssl libffi expat bzip2 )
 
           for p in "${gnu_pkgs[@]}";do
