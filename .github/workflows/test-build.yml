@@ -937,6 +937,7 @@ jobs:
           export BUILD_DIR="${GITHUB_WORKSPACE}/build-native-python"
           export CROSS_PREFIX="${GITHUB_WORKSPACE}/mingw-w64-cross"
           export PREFIX="${GITHUB_WORKSPACE}/mingw-w64-native"
+          chmod +x "${GITHUB_WORKSPACE}/scripts/gdb-python-config-mingw"
 
           export BUILD="x86_64-pc-linux-gnu"
           export HOST="x86_64-w64-mingw32"
