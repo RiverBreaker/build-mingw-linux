@@ -1015,6 +1015,7 @@ jobs:
             mv $PREFIX/bin/gdb.exe $PREFIX/bin/gdborig.exe
           }
           $CC -o $PREFIX/bin/gdb.exe $GITHUB_WORKSPACE/scripts/gdb-wrapper.c -U_DEBUG
+          cp $PREFIX/lib/libgcc_s_seh-1.dll $PREFIX/bin/
 
       - name: upload gdb logs
         if: always() || cancelled() || failure()
