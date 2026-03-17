@@ -517,6 +517,74 @@ export_versions_from_json() {
   return 0
 }
 
+get_python_version() {
+  local versions_file="${1:?versions_file is required}"
+  local requested_ver="${2:-${GCC_VERSION:-}}"
+  local mode="${3:-env}"
+
+  # 检查 jq 是否存在
+  command -v jq >/dev/null 2>&1 || { echo "jq is required but not found" >&2; return 2; }
+
+  # 检查文件是否存在
+  [[ -f "$versions_file" ]] || {
+    echo "Versions file not found: $versions_file" >&2
+    return 3
+  }
+
+  # ---------- 选择 GCC 版本 ----------
+  local ver
+  if [[ -n "$requested_ver" ]] && jq -e --arg v "$requested_ver" '.gcc_versions[$v]' "$versions_file" >/dev/null; then
+    ver="$requested_ver"
+  else
+    [[ -n "$requested_ver" ]] && \
+      echo "Warning: requested version '$requested_ver' not found, fallback to first." >&2
+    ver="$(jq -r '.gcc_versions | keys_unsorted[0]' "$versions_file")"
+    [[ -n "$ver" && "$ver" != "null" ]] || {
+      echo "No gcc_versions entries found" >&2
+      return 4
+    }
+  fi
+
+  # ---------- 提取 Python 版本 ----------
+  # 路径: .gcc_versions[$ver].Extension.python_version
+  local py_ver
+  py_ver=$(jq -r --arg v "$ver" '.gcc_versions[$v].Extension.python_version // empty' "$versions_file")
+
+  if [[ -z "$py_ver" ]]; then
+    echo "Error: python_version not found in .Extension for gcc version '$ver'" >&2
+    return 5
+  fi
+
+  # ---------- 输出处理 ----------
+  case "$mode" in
+    env)
+      if [[ -n "${GITHUB_ENV:-}" ]]; then
+        echo "PYTHON_VERSION=${py_ver}" >>"$GITHUB_ENV"
+      else
+        export PYTHON_VERSION="$py_ver"
+      fi
+      # 同时输出到 stdout 方便调试或脚本捕获
+      echo "$py_ver"
+      ;;
+    outputs)
+      if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+        echo "PYTHON_VERSION=${py_ver}" >>"$GITHUB_OUTPUT"
+      else
+        echo "$py_ver"
+      fi
+      ;;
+    local|step-only)
+      export PYTHON_VERSION="$py_ver"
+      echo "$py_ver"
+      ;;
+    *)
+      # 默认直接打印版本号
+      echo "$py_ver"
+      ;;
+  esac
+
+  return 0
+}
 
 
 curl_download() {

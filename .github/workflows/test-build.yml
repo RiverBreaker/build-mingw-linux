@@ -930,7 +930,7 @@ jobs:
 
           info "GCC 版本: ${GCC_VERSION}"
           DEP_JSON_FILE="${GITHUB_WORKSPACE}/dependencies.json"
-          run "获取组件版本信息" export_versions_from_json "${DEP_JSON_FILE}" "${GCC_VERSION}" local
+          run "获取python版本信息" 'get_python_version "${DEP_JSON_FILE}" "${GCC_VERSION}" local'
 
           # params / tuning
           export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
