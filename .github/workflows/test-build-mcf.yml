@@ -275,7 +275,7 @@ jobs:
             --host="${HOST}" \
             --build="${BUILD}" \
             --disable-multilib \
-            --enable-languages=c \
+            --enable-languages=c,c++ \
             --without-headers \
             --disable-shared \
             --disable-threads \
