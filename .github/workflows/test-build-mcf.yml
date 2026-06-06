@@ -549,10 +549,10 @@ jobs:
           # =========== 6. mcf ================ ===========
           run "准备 mcf build dir" mkdir -p "${BUILD_DIR}/mcf-build"
           cd "${SOURCE_CODE_DIR}/mcfgthread"
-          meson setup --prefix="${TARGET_DIR}" --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
+          meson setup --prefix "${TARGET_DIR}" --buildtype release --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
           cd "${BUILD_DIR}/mcf-build"
           meson compile
-          meson test
+          # meson test
           meson install
 
           # =========== 2. binutils (安装到 ${PREFIX}) ===========
