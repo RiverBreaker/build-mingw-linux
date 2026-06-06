@@ -175,6 +175,9 @@ jobs:
             if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
               TAG="v${ver}"
               URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
+            elif [[ "${p}" == "meson" ]]; then
+              TAG="${ver}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
             elif [[ "${p}" == "expat" ]]; then
               EXPAT_TAG="R_${ver//./_}"
               URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${EXPAT_TAG}/${tail}"
@@ -203,3 +206,4 @@ jobs:
           git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
 
           ls -lh "${SOURCE_CODE_DIR}/meson"
+          ls -lh "${SOURCE_CODE_DIR}/meson/*"
