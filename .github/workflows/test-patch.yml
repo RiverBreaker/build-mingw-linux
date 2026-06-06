@@ -89,3 +89,4 @@ jobs:
           ls -alh patches
           ls -alh patches/gcc
           ls -alh patches/gcc/libgomp
+          ls -alh patches/gcc/libgomp/config
