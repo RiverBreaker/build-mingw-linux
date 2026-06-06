@@ -305,6 +305,15 @@ jobs:
           run "mingw-crt: make" make -j$(nproc)
           run "mingw-crt: install" make install
 
+          # =========== 6. mcf ================ ===========
+          run "准备 mcf build dir" mkdir -p "${BUILD_DIR}/mcf-build"
+          cd "${SOURCE_CODE_DIR}/mcfgthread"
+          meson setup --prefix="${PREFIX}/${TARGET}" --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
+          cd "${BUILD_DIR}/mcf-build"
+          meson compile
+          meson test
+          meson install
+
           # gcc full build
           # set cross toolchain env
           export CC="gcc"
