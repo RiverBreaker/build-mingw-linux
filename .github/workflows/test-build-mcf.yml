@@ -40,7 +40,6 @@ jobs:
             autoconf-archive
             libtool
             m4
-            meson
             wine
             wine-binfmt
             liblzma-dev
@@ -88,7 +87,7 @@ jobs:
           export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code" && mkdir -p "${SOURCE_CODE_DIR}"
 
           gnu_pkgs=( gcc binutils libiconv ncurses readline gdbm gdb )
-          github_pkgs=( mingw-w64 zlib xz openssl libffi expat bzip2 )
+          github_pkgs=( mingw-w64 zlib xz openssl libffi expat bzip2 meson )
 
           for p in "${gnu_pkgs[@]}";do
             if [[ "${p}" == "gcc" ]]; then
@@ -140,12 +139,18 @@ jobs:
                 github_author="RiverBreaker"
                 project_name="bzip2-autoconf"
                 ;;
+                # https://github.com/mesonbuild/meson/releases/download/1.11.1/meson-1.11.1.tar.gz
+              meson)
+                ver="${MESON_VER}"
+                github_author="mesonbuild"
+                project_name="meson"
+                ;;
               *)
                 error "未知的 GitHub 包: ${p}"
                 exit 1
                 ;;
             esac
-            if [[ "${p}" == "expat" ]] || [[ "${p}" == "libffi" ]] || [[ "${p}" == "openssl" ]] || [[ "${p}" == "xz" ]]; then
+            if [[ "${p}" == "expat" ]] || [[ "${p}" == "libffi" ]] || [[ "${p}" == "openssl" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
               tail="${p}-${ver}.tar.gz"
             elif [[ "${p}" == "bzip2" ]]; then
               tail="${p}-autoconf-${ver}.tar.gz"
@@ -169,7 +174,7 @@ jobs:
             else
               tail="v${ver}.tar.gz" # cpython-mingw zlib ninja
             fi
-            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]]; then
+            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
               TAG="v${ver}"
               URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
             elif [[ "${p}" == "expat" ]]; then
@@ -309,11 +314,11 @@ jobs:
           # =========== 6. mcf ================ ===========
           run "准备 mcf build dir" mkdir -p "${BUILD_DIR}/mcf-build"
           cd "${SOURCE_CODE_DIR}/mcfgthread"
-          meson setup --prefix "${PREFIX}/${TARGET}" --buildtype release --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
+          ${SOURCE_CODE_DIR}/meson/meson.py setup --prefix "${PREFIX}/${TARGET}" --buildtype release --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
           cd "${BUILD_DIR}/mcf-build"
-          meson compile
+          ${SOURCE_CODE_DIR}/meson/meson.py compile
           # meson test
-          meson install
+          ${SOURCE_CODE_DIR}/meson/meson.py install
 
           # gcc full build
           # set cross toolchain env
@@ -549,11 +554,11 @@ jobs:
           # =========== 6. mcf ================ ===========
           run "准备 mcf build dir" mkdir -p "${BUILD_DIR}/mcf-build"
           cd "${SOURCE_CODE_DIR}/mcfgthread"
-          meson setup --prefix "${TARGET_DIR}" --buildtype release --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
+          ${SOURCE_CODE_DIR}/meson/meson.py setup --prefix "${TARGET_DIR}" --buildtype release --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
           cd "${BUILD_DIR}/mcf-build"
-          meson compile
+          ${SOURCE_CODE_DIR}/meson/meson.py compile
           # meson test
-          meson install
+          ${SOURCE_CODE_DIR}/meson/meson.py install
 
           # =========== 2. binutils (安装到 ${PREFIX}) ===========
           run "准备 binutils build dir" mkdir -p "${BUILD_DIR}/binutils-build"
