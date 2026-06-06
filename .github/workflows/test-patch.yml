@@ -84,9 +84,122 @@ jobs:
 
           export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code" && mkdir -p "${SOURCE_CODE_DIR}"
 
-          cd "${SOURCE_CODE_DIR}"
+          gnu_pkgs=( gcc binutils libiconv ncurses readline gdbm gdb )
+          github_pkgs=( mingw-w64 zlib xz openssl libffi expat bzip2 meson )
+
+          for p in "${gnu_pkgs[@]}";do
+            if [[ "${p}" == "gcc" ]]; then
+              ver="${GCC_VERSION}"
+              echo "下载${p} 源码版本: ${ver}"
+              run "下载${p}-${ver} 源码" curl_download "${GNU_BASE_URL}/${p}/${p}-${ver}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              # for d in gcc gmp mpfr mpc isl; do
+              #   du -sh "${SOURCE_CODE_DIR}/${d}"
+              # done
+            else
+              val="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
+              ver=${!val}
+              run "下载${p}-${ver} 源码" curl_download "${GNU_BASE_URL}/${p}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${p}-${ver}.tar.gz" "${SOURCE_CODE_DIR}"
+              # du -sh "${SOURCE_CODE_DIR}/${p}"
+            fi
+          done
+          for p in "${github_pkgs[@]}";do
+            case "${p}" in
+              mingw-w64)
+                ver="${MINGW_W64}"
+                github_author="mingw-w64"
+                project_name="mingw-w64"
+                ;;
+              zlib)
+                ver="${ZLIB}"
+                github_author="madler"
+                project_name="zlib"
+                ;;
+              xz)
+                ver="${XZ}"
+                github_author="tukaani-project"
+                project_name="xz"
+                ;;
+              openssl|libffi)
+                pkg_name=${p^^}
+                ver="${!pkg_name}"
+                github_author="${p}"
+                project_name="${p}"
+                ;;
+              expat)
+                ver="${EXPAT}"
+                github_author="libexpat"
+                project_name="libexpat"
+                ;;
+              bzip2)
+                ver="${BZIP2_VER}"
+                github_author="RiverBreaker"
+                project_name="bzip2-autoconf"
+                ;;
+                # https://github.com/mesonbuild/meson/releases/download/1.11.1/meson-1.11.1.tar.gz
+              meson)
+                ver="${MESON_VER}"
+                github_author="mesonbuild"
+                project_name="meson"
+                ;;
+              *)
+                error "未知的 GitHub 包: ${p}"
+                exit 1
+                ;;
+            esac
+            if [[ "${p}" == "expat" ]] || [[ "${p}" == "libffi" ]] || [[ "${p}" == "openssl" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
+              tail="${p}-${ver}.tar.gz"
+            elif [[ "${p}" == "bzip2" ]]; then
+              tail="${p}-autoconf-${ver}.tar.gz"
+            elif [[ "${p}" == "mcfgthread" ]]; then
+              case arch in
+                x86_64)
+                  if [[ "${{ matrix.crt }}" == "ucrt" ]];then
+                    tail="mingw-w64-ucrt-x86_64-mcfgthread-${ver}-1-any.pkg.tar.zst"
+                  else
+                    tail="mingw-w64-x86_64-mcfgthread-${ver}-1-any.pkg.tar.xz"
+                  fi
+                  ;;
+                i686)
+                  tail="mingw-w64-i686-mcfgthread-${ver}-1-any.pkg.tar.zst"
+                  ;;
+                *)
+                  error "未知的架构: ${arch}"
+                  exit 1
+                  ;;
+              esac
+            else
+              tail="v${ver}.tar.gz" # cpython-mingw zlib ninja
+            fi
+            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
+              TAG="v${ver}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
+            elif [[ "${p}" == "expat" ]]; then
+              EXPAT_TAG="R_${ver//./_}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${EXPAT_TAG}/${tail}"
+            elif [[ "${p}" == "mcfgthread" ]]; then
+              MCF_TAG="${ver%.*}-ga.${ver##*.}"
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${MCF_TAG}/${tail}"
+            else
+              URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/archive/refs/tags/${tail}"
+            fi
+            run "下载${p}-${ver} 源码" curl_download "${URL}" "${SOURCE_CODE_DIR}"
+            run "解压${p}-${ver} 源码" archive_extract "${p}" "${SOURCE_CODE_DIR}/${tail}" "${SOURCE_CODE_DIR}"
+          done
+          run "下载 sqlite 源码" curl_download "${SQLITE_BASE_URL}/${SQLITE_YEAR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
+          run "解压 sqlite 源码" archive_extract sqlite "${SOURCE_CODE_DIR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
+          run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON_VERSION} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
+          info "下载与解压步骤完成"
+
+          echo "下载libgomp mcf 补丁"
+          mkdir -p "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
+          cd "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
           git clone https://github.com/RiverBreaker/patches.git patches
-          ls -alh patches
-          ls -alh patches/gcc
-          ls -alh patches/gcc/libgomp
-          ls -alh patches/gcc/libgomp/config/mcf*
+          cd patches/gcc/libgomp
+          cp -r * "${SOURCE_CODE_DIR}/gcc/libgomp"
+          echo "下载mcfgthread"
+          cd "${SOURCE_CODE_DIR}"
+          git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
+
+          ls -lh "${SOURCE_CODE_DIR}/meson"
