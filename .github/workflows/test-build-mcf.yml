@@ -359,13 +359,6 @@ jobs:
           agg="$(aggregate_all_summaries)"
           info "聚合摘要已写入：$agg"
 
-          ls -l ${PREFIX}
-          ls -l ${PREFIX}/bin
-          ls -l ${PREFIX}/${TARGET}
-          ls -l ${PREFIX}/${TARGET}/bin
-          ls -l ${PREFIX}/${TARGET}/lib
-          ls -l ${PREFIX}/lib
-
       - name: Build native
         shell: bash
         env:
