@@ -1,0 +1,89 @@
+name: The First Test download For Mingw-w64 From Linux To Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcc-version:
+        description: 'GCC Version'
+        required: true
+        default: '13.2.0'
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Get System Dependencies
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          FORCE_COLOR: '1'
+        run: |
+          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          mkdir -p "${LOG_DIR}"
+          source "$GITHUB_WORKSPACE/scripts/functions/functions.sh"
+
+          export DEBIAN_FRONTEND=noninteractive
+
+          run "apt-get update" sudo apt-get update -y
+          pkgs=(
+            build-essential
+            automake
+            gettext
+            autopoint
+            pkg-config
+            autoconf
+            autoconf-archive
+            libtool
+            m4
+            liblzma-dev
+            nasm
+            libgmp-dev
+            libmpfr-dev
+            libmpc-dev
+            libisl-dev
+            zlib1g-dev
+            python3
+            python3-dev
+            tcl
+            tcl-dev
+          )
+          for p in "${pkgs[@]}"; do
+            install_pkg "安装${p}" "$p"
+          done
+          info "完成"
+
+      - name: Download Source Code
+        shell: bash
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+          LOG_DIR: "${{ github.workspace }}/logs"
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+
+          info "GCC 版本: ${GCC_VERSION}"
+          DEP_JSON_FILE="${GITHUB_WORKSPACE}/dependencies.json"
+          run "获取组件版本信息" export_versions_from_json "${DEP_JSON_FILE}" "${GCC_VERSION}" local
+
+          export GITHUB_BASE_URL="https://github.com"
+          export GNU_BASE_URL="https://ftp.gnu.org/gnu"
+          SQLITE_BASE_URL="https://sqlite.org"
+
+          # optional tuning
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=80
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code" && mkdir -p "${SOURCE_CODE_DIR}"
+
+          cd "${SOURCE_CODE_DIR}"
+          git clone https://github.com/RiverBreaker/patches.git patches
+          ls -alh patches
