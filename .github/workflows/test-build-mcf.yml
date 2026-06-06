@@ -1,4 +1,4 @@
-name: The First Test Build For Mingw-w64 From Linux To Windows
+name: The First Test Build mcf-gcc For Mingw-w64 From Linux To Windows
 
 on:
   workflow_dispatch:
@@ -40,6 +40,9 @@ jobs:
             autoconf-archive
             libtool
             m4
+            meson
+            wine
+            wine-binfmt
             liblzma-dev
             nasm
             libgmp-dev
@@ -187,8 +190,13 @@ jobs:
           info "下载与解压步骤完成"
 
           echo "下载libgomp mcf 补丁"
-          cd "${SOURCE_CODE_DIR}"
-          git clone 
+          mkdir -p "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
+          cd "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
+          git clone https://github.com/RiverBreaker/patches.git patches
+          cd patches/gcc/libgomp
+          cp -r * "${SOURCE_CODE_DIR}/gcc/libgomp"
+          echo "下载mcfgthread"
+          git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
 
       - name: Build cross
         shell: bash
@@ -288,7 +296,12 @@ jobs:
           # mingw-crt
           run "prepare mingw-crt build dir" mkdir -p "${BUILD_DIR}/mingw-crt-build"
           cd "${BUILD_DIR}/mingw-crt-build"
-          run "mingw-crt: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-crt/configure" --prefix="${PREFIX}/${TARGET}" --host="${TARGET}" --build="${BUILD}" --disable-multilib --with-sysroot="${PREFIX}/${TARGET}"
+          run "mingw-crt: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-crt/configure" \
+            --prefix="${PREFIX}/${TARGET}" \
+            --host="${TARGET}" \
+            --build="${BUILD}" \
+            --disable-multilib \
+            --with-sysroot="${PREFIX}/${TARGET}"
           run "mingw-crt: make" make -j$(nproc)
           run "mingw-crt: install" make install
 
@@ -309,7 +322,7 @@ jobs:
             --build="${BUILD}" \
             --disable-multilib \
             --enable-languages=c,c++,fortran \
-            --enable-threads=${{ matrix.threads }} \
+            --enable-threads=mcf \
             --enable-shared \
             --enable-static \
             --with-sysroot="${PREFIX}/${TARGET}" \
@@ -509,25 +522,35 @@ jobs:
           run "mingw-crt: make" make -j$(nproc)
           run "mingw-crt: install" make install
 
-          # =========== mingw-w64-winpthreads =================
-          run "准备 mingw-w64-winpthreads build dir" mkdir -p "${BUILD_DIR}/mingw-w64-winpthreads-build"
-          cd "${BUILD_DIR}/mingw-w64-winpthreads-build"
-          run "mingw-w64-winpthreads: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-libraries/winpthreads/configure" \
-            --prefix="${TARGET_DIR}" \
-            --host="${TARGET}" \
-            --build="${BUILD}" \
-            --with-sysroot="${TARGET_DIR}" \
-            --enable-static \
-            --enable-shared \
-            --disable-multilib \
-            --with-default-msvcrt=ucrt \
-            CFLAGS="${CFLAGS}" \
-            CXXFLAGS="${CXXFLAGS}" \
-            LDFLAGS="${LDFLAGS}" \
-            CPPFLAGS="${CPPFLAGS}"
+          # # =========== mingw-w64-winpthreads =================
+          # run "准备 mingw-w64-winpthreads build dir" mkdir -p "${BUILD_DIR}/mingw-w64-winpthreads-build"
+          # cd "${BUILD_DIR}/mingw-w64-winpthreads-build"
+          # run "mingw-w64-winpthreads: configure" "${SOURCE_CODE_DIR}/mingw-w64/mingw-w64-libraries/winpthreads/configure" \
+          #   --prefix="${TARGET_DIR}" \
+          #   --host="${TARGET}" \
+          #   --build="${BUILD}" \
+          #   --with-sysroot="${TARGET_DIR}" \
+          #   --enable-static \
+          #   --enable-shared \
+          #   --disable-multilib \
+          #   --with-default-msvcrt=ucrt \
+          #   CFLAGS="${CFLAGS}" \
+          #   CXXFLAGS="${CXXFLAGS}" \
+          #   LDFLAGS="${LDFLAGS}" \
+          #   CPPFLAGS="${CPPFLAGS}"
 
-          run "mingw-w64-winpthreads: make" make -j$(nproc)
-          run "mingw-w64-winpthreads: install" make install
+          # run "mingw-w64-winpthreads: make" make -j$(nproc)
+          # run "mingw-w64-winpthreads: install" make install
+
+
+          # =========== 6. mcf ================ ===========
+          run "准备 mcf build dir" mkdir -p "${BUILD_DIR}/mcf-build"
+          cd "${SOURCE_CODE_DIR}/mcfgthread"
+          meson setup --prefix="${TARGET_DIR}" --cross-file cross/gcc.x86_64-w64-mingw32 "${BUILD_DIR}/mcf-build"
+          cd "${BUILD_DIR}/mcf-build"
+          meson compile
+          meson test
+          meson install
 
           # =========== 2. binutils (安装到 ${PREFIX}) ===========
           run "准备 binutils build dir" mkdir -p "${BUILD_DIR}/binutils-build"
@@ -587,6 +610,10 @@ jobs:
           # =========== 13. gcc 第二阶段 (完整版本) ===========
           run "恢复使用新构建的binutils" export PATH="${PREFIX}/bin:${PATH}"
           run "准备 gcc stage2 build dir" mkdir -p "${BUILD_DIR}/gcc2-build"
+          cd "${SOURCE_CODE_DIR}/gcc/libgomp"
+          autoconf && autoheader
+          head -5 configure
+          grep LIBGOMP_USE_MCFGTHREAD config.h.in
           cd "${BUILD_DIR}/gcc2-build"
           # info "取消 cross 工具链环境变量"
           # unset CC CXX LD AR AS RANLIB
@@ -598,7 +625,7 @@ jobs:
             --enable-languages=c,c++,fortran \
             --enable-shared \
             --enable-static \
-            --enable-threads=posix \
+            --enable-threads=mcf \
             --enable-lto \
             --enable-plugins \
             --with-default-msvcrt=ucrt \
