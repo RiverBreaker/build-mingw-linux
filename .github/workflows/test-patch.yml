@@ -172,7 +172,7 @@ jobs:
             else
               tail="v${ver}.tar.gz" # cpython-mingw zlib ninja
             fi
-            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]] || [[ "${p}" == "meson" ]]; then
+            if [[ "${p}" == "libffi" ]] || [[ "${p}" == "xz" ]]; then
               TAG="v${ver}"
               URL="${GITHUB_BASE_URL}/${github_author}/${project_name}/releases/download/${TAG}/${tail}"
             elif [[ "${p}" == "meson" ]]; then
