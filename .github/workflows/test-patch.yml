@@ -206,7 +206,7 @@ jobs:
           git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
 
           ls -lh "${SOURCE_CODE_DIR}/meson"
-          ls -lh "${SOURCE_CODE_DIR}/meson/*"
+          # ls -lh "${SOURCE_CODE_DIR}/meson/*"
 
       - name: upload logs
         if: always() || cancelled() || failure()
