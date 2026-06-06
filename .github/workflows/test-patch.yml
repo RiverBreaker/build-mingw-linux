@@ -87,3 +87,5 @@ jobs:
           cd "${SOURCE_CODE_DIR}"
           git clone https://github.com/RiverBreaker/patches.git patches
           ls -alh patches
+          ls -alh patches/gcc
+          ls -alh patches/gcc/libgomp
