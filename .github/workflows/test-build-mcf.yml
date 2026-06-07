@@ -54,7 +54,7 @@ jobs:
             install_pkg "安装${p}" "$p"
           done
           info "完成"
-          mkdir -p "/usr/libtool-2.4.6"
+          sudo mkdir -p "/usr/libtool-2.4.6"
           wget -q http://cz.archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libtool_2.4.6-15build2_all.deb
           dpkg -x libtool_2.4.6-15build2_all.deb /usr/libtool-2.4.6
           "/usr/libtool-2.4.6/usr/bin/libtool" --version || {echo libtool failed to install;}
