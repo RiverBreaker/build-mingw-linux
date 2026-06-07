@@ -634,6 +634,7 @@ jobs:
           export PATH="/usr/libtool-2.4.6/usr/bin:$PATH"
           export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
           export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
+          export AUTOM4TE=autom4te-2.69
 
           aclocal -I "../config" && autoconf2.69 && autoheader2.69
           head -5 configure
