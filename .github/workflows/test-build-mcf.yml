@@ -657,7 +657,9 @@ jobs:
 
           run "gcc stage2: make" make -j$(nproc)
           run "gcc stage2: make install" make install-strip
-          cp "${TARGET_DIR}/bin/libwinpthread-1.dll" "${PREFIX}/bin"
+          # cp "${TARGET_DIR}/bin/libwinpthread-1.dll" "${PREFIX}/bin"
+          cp "${TARGET_DIR}/bin/libmcfgthread-2.dll" "${PREFIX}/bin"
+          # cp "${TARGET_DIR}/bin/libmcfgthread-2.dll" "${PREFIX}/bin"
 
           export BASE_CFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_CXXFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
