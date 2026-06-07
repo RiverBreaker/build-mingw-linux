@@ -18,15 +18,6 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-
-      - uses: srz-zumix/setup-autoconf@v0
-        with:
-          version: "2.69.*"
-
-      - uses: srz-zumix/setup-automake@v0.3.0
-        with:
-          version: "1.16.*"
-
       - name: Get System Dependencies
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
@@ -44,7 +35,6 @@ jobs:
             gettext
             autopoint
             pkg-config
-            libtool
             autoconf-archive
             wine
             wine-binfmt
@@ -64,6 +54,10 @@ jobs:
             install_pkg "安装${p}" "$p"
           done
           info "完成"
+          mkdir -p "/usr/libtool-2.4.6"
+          wget -q http://cz.archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libtool_2.4.6-15build2_all.deb
+          dpkg -x libtool_2.4.6-15build2_all.deb /usr/libtool-2.4.6
+          "/usr/libtool-2.4.6/usr/bin/libtool" --version || {echo libtool failed to install;}
 
       - name: Download Source Code
         shell: bash
@@ -629,7 +623,11 @@ jobs:
           run "恢复使用新构建的binutils" export PATH="${PREFIX}/bin:${PATH}"
           run "准备 gcc stage2 build dir" mkdir -p "${BUILD_DIR}/gcc2-build"
           cd "${SOURCE_CODE_DIR}/gcc/libgomp"
-          autoconf && autoheader
+          export PATH="/usr/libtool-2.4.6/usr/bin:$PATH"
+          export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
+          export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
+
+          autoconf2.69 && autoheader2.69
           head -5 configure
           grep LIBGOMP_USE_MCFGTHREAD config.h.in
           cd "${BUILD_DIR}/gcc2-build"
@@ -821,7 +819,10 @@ jobs:
           #sqlite
           run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
           cd ${SOURCE_CODE_DIR}/sqlite
-          run "sqlite autoreconf" autoreconf -fi
+          export PATH="/usr/libtool-2.4.6/usr/bin:$PATH"
+          export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
+          export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
+          run "sqlite autoreconf" autoreconf2.69 -fi
           cd "${BUILD_DIR}/sqlite-build"
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
