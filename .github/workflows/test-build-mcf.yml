@@ -643,6 +643,7 @@ jobs:
             --enable-static \
             --enable-threads=mcf \
             --enable-lto \
+            --enable-libgomp \
             --enable-plugins \
             --with-default-msvcrt=ucrt \
             --disable-nls \
