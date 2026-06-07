@@ -219,7 +219,7 @@ jobs:
           source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
 
           # tuning
-          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          export LOG_DIR="${GITHUB_WORKSPACE}/cross-logs"
           export FORCE_COLOR=1
           mkdir -p "${LOG_DIR}"
           IGNORE_REGEX='array subscript 0 is outside array bounds'
@@ -370,6 +370,13 @@ jobs:
           agg="$(aggregate_all_summaries)"
           info "聚合摘要已写入：$agg"
 
+      - name: upload logs
+        if: always() || cancelled() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-cross-logs
+          path: "${{ github.workspace }}/cross-logs"
+
       - name: Build native
         shell: bash
         env:
@@ -395,7 +402,7 @@ jobs:
           export TARGET_DIR="${PREFIX}/${TARGET}"
           export SHARE_DIR="${PREFIX}/share"
 
-          export LOG_DIR="${GITHUB_WORKSPACE}/logs"
+          export LOG_DIR="${GITHUB_WORKSPACE}/native-logs"
           export FORCE_COLOR=1
           mkdir -p "${LOG_DIR}"
 
@@ -628,7 +635,7 @@ jobs:
           export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
           export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
 
-          autoconf2.69 && autoheader2.69
+          aclocal -I "../config" && autoconf2.69 && autoheader2.69
           head -5 configure
           grep LIBGOMP_USE_MCFGTHREAD config.h.in
           cd "${BUILD_DIR}/gcc2-build"
@@ -861,8 +868,8 @@ jobs:
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-msys2-logs
-          path: "${{ github.workspace }}/logs"
+          name: build-native-logs
+          path: "${{ github.workspace }}/native-logs"
 
       - name: upload native toolchain
         uses: actions/upload-artifact@v4
