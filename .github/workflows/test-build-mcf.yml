@@ -57,7 +57,7 @@ jobs:
           sudo mkdir -p "/usr/libtool-2.4.6"
           wget -q http://cz.archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libtool_2.4.6-15build2_all.deb
           sudo dpkg -x libtool_2.4.6-15build2_all.deb /usr/libtool-2.4.6
-          "/usr/libtool-2.4.6/usr/bin/libtool" --version || {echo libtool failed to install;}
+          "/usr/libtool-2.4.6/usr/bin/libtool" --version || { echo libtool failed to install; }
 
       - name: Download Source Code
         shell: bash
