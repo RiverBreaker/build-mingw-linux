@@ -45,6 +45,7 @@ jobs:
             autopoint
             pkg-config
             libtool
+            autoconf-archive
             wine
             wine-binfmt
             liblzma-dev
