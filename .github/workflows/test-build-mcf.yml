@@ -631,7 +631,8 @@ jobs:
           run "恢复使用新构建的binutils" export PATH="${PREFIX}/bin:${PATH}"
           run "准备 gcc stage2 build dir" mkdir -p "${BUILD_DIR}/gcc2-build"
           cd "${SOURCE_CODE_DIR}/gcc/libgomp"
-          export PATH="/usr/libtool-2.4.6/usr/bin:$PATH"
+          export OLD_PATH="$PATH"
+          export PATH="/usr/libtool-2.4.6/usr/bin:$OLD_PATH"
           export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
           export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
           export AUTOM4TE=autom4te2.69
@@ -679,6 +680,8 @@ jobs:
           export BASE_CXXFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_CPPFLAGS="-I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_LDFLAGS="-L${TARGET_DIR}/lib -L${OPT_DIR}/lib"
+          unset AUTOM4TE ACLOCAL_PATH LIBTOOLIZE
+          export PATH="$OLD_PATH"
 
           # bzip2
           run "bzip2 build dir" mkdir -p "${BUILD_DIR}/bzip2-build"
