@@ -204,7 +204,7 @@ jobs:
           git clone https://github.com/RiverBreaker/patches.git patches
           cd patches/gcc/libgomp
           cp -r * "${SOURCE_CODE_DIR}/gcc/libgomp"
-          cd patches/gcc/gcc
+          cd "${SOURCE_CODE_DIR}/libgomp-mcf-patch/patches/gcc/gcc"
           cp -r * "${SOURCE_CODE_DIR}/gcc/gcc"
           echo "下载mcfgthread"
           cd "${SOURCE_CODE_DIR}"
