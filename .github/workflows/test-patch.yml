@@ -201,11 +201,13 @@ jobs:
           git clone https://github.com/RiverBreaker/patches.git patches
           cd patches/gcc/libgomp
           cp -r * "${SOURCE_CODE_DIR}/gcc/libgomp"
+          cd patches/gcc/gcc
+          ls
           echo "下载mcfgthread"
           cd "${SOURCE_CODE_DIR}"
           git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
 
-          ls -lh "${SOURCE_CODE_DIR}/meson"
+          # ls -lh "${SOURCE_CODE_DIR}/meson"
           # ls -lh "${SOURCE_CODE_DIR}/meson/*"
 
       - name: upload logs
