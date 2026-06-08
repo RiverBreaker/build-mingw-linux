@@ -636,7 +636,7 @@ jobs:
           export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
           export AUTOM4TE=autom4te2.69
 
-          aclocal -I "../config" && autoconf2.69 && autoheader2.69
+          autoconf2.69 && autoheader2.69
           head -5 configure
           grep LIBGOMP_USE_MCFGTHREAD config.h.in
           cd "${BUILD_DIR}/gcc2-build"
