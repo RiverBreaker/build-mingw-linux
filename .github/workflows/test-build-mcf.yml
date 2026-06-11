@@ -197,15 +197,19 @@ jobs:
           run "解压 sqlite 源码" archive_extract sqlite "${SOURCE_CODE_DIR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
           run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON_VERSION} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
           info "下载与解压步骤完成"
+          info "Patch The GCC"
+          cd "${SOURCE_CODE_DIR}/gcc"
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/gcc-13.2.0-libgomp-add-mcf-support.patch"
+          cd "${SOURCE_CODE_DIR}/gcc/libgomp"
+          export OLD_PATH="$PATH"
+          export PATH="/usr/libtool-2.4.6/usr/bin:$OLD_PATH"
+          export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
+          export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
+          export AUTOM4TE=autom4te2.69
 
-          echo "下载libgomp mcf 补丁"
-          mkdir -p "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
-          cd "${SOURCE_CODE_DIR}/libgomp-mcf-patch"
-          git clone https://github.com/RiverBreaker/patches.git patches
-          cd patches/gcc/libgomp
-          cp -r * "${SOURCE_CODE_DIR}/gcc/libgomp"
-          cd "${SOURCE_CODE_DIR}/libgomp-mcf-patch/patches/gcc/gcc"
-          cp -r * "${SOURCE_CODE_DIR}/gcc/gcc"
+          autoconf2.69 && autoheader2.69
+          head -5 configure
+          grep LIBGOMP_USE_MCFGTHREAD config.h.in
           echo "下载mcfgthread"
           cd "${SOURCE_CODE_DIR}"
           git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
@@ -632,16 +636,7 @@ jobs:
           # =========== 13. gcc 第二阶段 (完整版本) ===========
           run "恢复使用新构建的binutils" export PATH="${PREFIX}/bin:${PATH}"
           run "准备 gcc stage2 build dir" mkdir -p "${BUILD_DIR}/gcc2-build"
-          cd "${SOURCE_CODE_DIR}/gcc/libgomp"
-          export OLD_PATH="$PATH"
-          export PATH="/usr/libtool-2.4.6/usr/bin:$OLD_PATH"
-          export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
-          export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
-          export AUTOM4TE=autom4te2.69
 
-          autoconf2.69 && autoheader2.69
-          head -5 configure
-          grep LIBGOMP_USE_MCFGTHREAD config.h.in
           cd "${BUILD_DIR}/gcc2-build"
           # info "取消 cross 工具链环境变量"
           # unset CC CXX LD AR AS RANLIB
@@ -682,8 +677,6 @@ jobs:
           export BASE_CXXFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_CPPFLAGS="-I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_LDFLAGS="-L${TARGET_DIR}/lib -L${OPT_DIR}/lib"
-          unset AUTOM4TE ACLOCAL_PATH LIBTOOLIZE
-          export PATH="$OLD_PATH"
 
           # bzip2
           run "bzip2 build dir" mkdir -p "${BUILD_DIR}/bzip2-build"
