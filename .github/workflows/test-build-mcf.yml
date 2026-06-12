@@ -756,7 +756,7 @@ jobs:
 
           # readline
           run "准备 readline build dir" mkdir -p "${BUILD_DIR}/readline-build"
-          cd ${SOURCE_CODE_DIR}/readline && patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
+          # cd ${SOURCE_CODE_DIR}/readline && patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
           cd "${BUILD_DIR}/readline-build"
           run "readline configure" "${SOURCE_CODE_DIR}/readline/configure" \
             --host="${HOST}" \
