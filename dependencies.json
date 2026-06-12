@@ -1,5 +1,155 @@
 {
   "gcc_versions": {
+	"14.3.0": {
+      "core": {
+        "mingw-w64": "13.0.0",
+        "binutils": "2.44",
+        "zlib": "1.3.1",
+        "libiconv": "1.18",
+        "gcc": "14.3.0"
+      },
+      "Extension": {
+        "libffi": "3.4.7",
+        "gdbm": "1.24",
+        "sqlite": {
+          "year": "2025",
+          "version": "3490000"
+        },
+        "openssl": "3.4.0",
+        "python_version": "3.14.6",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.6.4",
+        "ncurses": "6.6",
+        "readline": "8.3",
+        "xz": "5.8.2",
+        "gdb": "16.1",
+        "make": "4.4.1",
+        "cmake": "3.31.6",
+        "pkgconf": "2.5.1",
+        "ninja": "1.12.1",
+        "meson_ver": "1.11.1"
+      }
+    },
+    "14.2.0": {
+      "core": {
+        "mingw-w64": "13.0.0",
+        "binutils": "2.44",
+        "zlib": "1.3.1",
+        "libiconv": "1.18",
+        "gcc": "14.2.0"
+      },
+      "Extension": {
+        "libffi": "3.4.7",
+        "gdbm": "1.24",
+        "sqlite": {
+          "year": "2025",
+          "version": "3480000"
+        },
+        "openssl": "3.4.0",
+        "python_version": "3.14.5",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.6.4",
+        "ncurses": "6.6",
+        "readline": "8.3",
+        "xz": "5.8.2",
+        "gdb": "15.2",
+        "make": "4.4.1",
+        "cmake": "3.31.2",
+        "pkgconf": "2.5.1",
+        "ninja": "1.12.1",
+        "meson_ver": "1.11.1"
+      }
+    },
+    "14.1.0": {
+      "core": {
+        "mingw-w64": "13.0.0",
+        "binutils": "2.44",
+        "zlib": "1.3.1",
+        "libiconv": "1.18",
+        "gcc": "14.1.0"
+      },
+      "Extension": {
+        "libffi": "3.4.7",
+        "gdbm": "1.24",
+        "sqlite": {
+          "year": "2025",
+          "version": "3470000"
+        },
+        "openssl": "3.4.0",
+        "python_version": "3.13.11",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.6.4",
+        "ncurses": "6.6",
+        "readline": "8.3",
+        "xz": "5.8.2",
+        "gdb": "15.2",
+        "make": "4.4.1",
+        "cmake": "3.30.5",
+        "pkgconf": "2.5.1",
+        "ninja": "1.12.1",
+        "meson_ver": "1.11.1"
+      }
+    },
+    "13.4.0": {
+      "core": {
+        "mingw-w64": "12.0.0",
+        "binutils": "2.43",
+        "zlib": "1.3.1",
+        "libiconv": "1.18",
+        "gcc": "13.4.0"
+      },
+      "Extension": {
+        "libffi": "3.4.6",
+        "gdbm": "1.22",
+        "sqlite": {
+          "year": "2024",
+          "version": "3460000"
+        },
+        "openssl": "3.3.0",
+        "python_version": "3.12.12",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.6.0",
+        "ncurses": "6.5",
+        "readline": "8.3",
+        "xz": "5.8.2",
+        "gdb": "15.1",
+        "make": "4.4.1",
+        "cmake": "3.29.6",
+        "pkgconf": "2.5.1",
+        "ninja": "1.12.0",
+        "meson_ver": "1.11.1"
+      }
+    },
+    "13.3.0": {
+      "core": {
+        "mingw-w64": "12.0.0",
+        "binutils": "2.42",
+        "zlib": "1.3.1",
+        "libiconv": "1.18",
+        "gcc": "13.3.0"
+      },
+      "Extension": {
+        "libffi": "3.4.4",
+        "gdbm": "1.20",
+        "sqlite": {
+          "year": "2024",
+          "version": "3450000"
+        },
+        "openssl": "3.2.2",
+        "python_version": "3.12.10",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.5.1",
+        "ncurses": "6.5",
+        "readline": "8.2",
+        "xz": "5.8.2",
+        "gdb": "14.2",
+        "make": "4.4.1",
+        "cmake": "3.28.3",
+        "pkgconf": "2.5.1",
+        "ninja": "1.11.1",
+        "meson_ver": "1.11.1"
+		}
+    },
     "13.2.0": {
       "core":{
         "mingw-w64": "12.0.0",
@@ -29,26 +179,6 @@
         "ninja": "1.11.1",
 		"meson_ver":"1.11.1"
       }
-    },
-    "12.3.0": {
-      "zlib_version": "1.2.12",
-      "binutils_version": "2.39",
-      "mingw_w64_version": "10.0.0",
-      "gdb_version": "12.1",
-      "readline_version": "8.2",
-      "m4_version": "1.4.19",
-      "libtool_version": "2.5.4",
-      "libiconv_version": "1.18"
-    },
-    "11.4.0": {
-      "zlib_version": "1.2.12",
-      "binutils_version": "2.38",
-      "mingw_w64_version": "9.0.0",
-      "gdb_version": "11.2",
-      "readline_version": "8.2",
-      "m4_version": "1.4.19",
-      "libtool_version": "2.5.4",
-      "libiconv_version": "1.18"
     }
   }
 }

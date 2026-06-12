@@ -199,7 +199,7 @@ jobs:
           info "下载与解压步骤完成"
           info "Patch The GCC"
           cd "${SOURCE_CODE_DIR}/gcc"
-          patch -p1 < "${GITHUB_WORKSPACE}/patches/gcc-13.2.0-libgomp-add-mcf-support.patch"
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/gcc-14.1.0-libgomp-add-mcf-support.patch"
           cd "${SOURCE_CODE_DIR}/gcc/libgomp"
           export OLD_PATH="$PATH"
           export PATH="/usr/libtool-2.4.6/usr/bin:$OLD_PATH"
