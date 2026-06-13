@@ -827,10 +827,7 @@ jobs:
           #sqlite
           run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
           cd ${SOURCE_CODE_DIR}/sqlite
-          export PATH="/usr/libtool-2.4.6/usr/bin:$PATH"
-          export ACLOCAL_PATH="/usr/libtool-2.4.6/usr/share/aclocal"
-          export LIBTOOLIZE="/usr/libtool-2.4.6/usr/bin/libtoolize"
-          run "sqlite autoreconf" autoreconf2.69 -fi
+          run "sqlite autoreconf" autoreconf -fi
           cd "${BUILD_DIR}/sqlite-build"
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
