@@ -970,6 +970,7 @@ jobs:
             CXXFLAGS="${CXXFLAGS}" \
             CPPFLAGS="${CPPFLAGS}" \
             LDFLAGS="${LDFLAGS}"
+          echo '#include <io.h>' | ${CROSS_PREFIX}/bin/${HOST}-gcc -E -x c - 2>/dev/null | grep '_chsize'
           run "python make" make -j$(nproc)
           run "python make install" make install
 
