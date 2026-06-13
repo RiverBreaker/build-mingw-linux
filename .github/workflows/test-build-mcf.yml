@@ -952,7 +952,8 @@ jobs:
           cd "${SOURCE_CODE_DIR}/python"
           run "python autogen" autoreconf -fi
           cd "${BUILD_DIR}/python-build"
-          run "python configure" "${SOURCE_CODE_DIR}/python/configure" \
+          run "python configure" ＇CFLAGS="-include io.h -Wno-error=implicit-function-declaration" \
+${SOURCE_CODE_DIR}/python/configure＇ \
             --build="${BUILD}" \
             --host="${HOST}" \
             --prefix="${PY_IN_DIR}" \
@@ -966,7 +967,8 @@ jobs:
             CXXFLAGS="${CXXFLAGS}" \
             CPPFLAGS="${CPPFLAGS}" \
             LDFLAGS="${LDFLAGS}"
-          run "python make" make -j$(nproc)
+          run "python make" ＇make -j$(nproc) CFLAGS="-include io.h -Wno-error=implicit-function-declaration"＇
+
           run "python make install" make install
 
           ls -l "${PY_IN_DIR}/bin"
