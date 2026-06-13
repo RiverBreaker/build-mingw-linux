@@ -919,6 +919,7 @@ jobs:
           IGNORE_REGEX='array subscript 0 is outside array bounds'
           LOG_TAIL_LINES=300
           FAIL_ON_FATAL_IN_SUCCESS=1
+          grep -n '_chsize' "${CROSS_PREFIX}/x86_64-w64-mingw32/include/io.h"
 
           # 创建所有必要的目录
           for d in "${BUILD_DIR}"; do
