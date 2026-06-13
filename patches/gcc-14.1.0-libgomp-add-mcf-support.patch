@@ -1955,7 +1955,7 @@ index 5ec19ae489e..0fc923430db 100644
  	    {
  	      *implicit_task = thr->task;
 diff --git a/libgomp/team.c b/libgomp/team.c
-index 681f84d53aa..256e24b0fc2 100644
+index 681f84d53aa..a4ae52cbe1d 100644
 --- a/libgomp/team.c
 +++ b/libgomp/team.c
 @@ -45,8 +45,21 @@ __thread struct gomp_thread gomp_tls_data;
@@ -2171,8 +2171,7 @@ index 681f84d53aa..256e24b0fc2 100644
 +}
 +#endif
  /* Similar to gomp_free_pool_helper, but don't detach itself,
--   gomp_pause_host will pthread_join those threads.  */
-+   gomp_pause_host will join those threads.  */
+    gomp_pause_host will pthread_join those threads.  */
  
 @@ -1053,7 +1117,11 @@ gomp_pause_pool_helper (void *thread_pool)
    gomp_sem_destroy (&thr->release);
@@ -2214,7 +2213,15 @@ index 681f84d53aa..256e24b0fc2 100644
  	}
        if (pool->last_team)
  	free_team (pool->last_team);
-@@ -1120,6 +1198,8 @@ gomp_new_icv (void)
+@@ -1109,7 +1187,6 @@ gomp_pause_host (void)
+     }
+   return 0;
+ }
+-#endif
+ 
+ struct gomp_task_icv *
+ gomp_new_icv (void)
+@@ -1120,6 +1197,8 @@ gomp_new_icv (void)
    thr->task = task;
  #ifdef LIBGOMP_USE_PTHREADS
    pthread_setspecific (gomp_thread_destructor, thr);
