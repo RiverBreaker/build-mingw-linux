@@ -911,10 +911,10 @@ jobs:
           export FORCE_COLOR=1
           mkdir -p "${LOG_DIR}"
 
-          export CFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include"
+          export CFLAGS="-O2 -pipe -fno-ident -Wno-error=implicit-function-declaration -D__USE_MINGW_ANSI_STDIO=1 -DNCURSES_STATIC -I${OPT_DIR}/include"
           export CXXFLAGS="-O2 -pipe -fno-ident -DNCURSES_STATIC -I${OPT_DIR}/include"
           export LDFLAGS="-L${OPT_DIR}/lib -pipe -fno-ident"
-          export CPPFLAGS="-DNCURSES_STATIC -I${OPT_DIR}/include"
+          export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=1 -DNCURSES_STATIC -I${OPT_DIR}/include"
           # 使用 PKG_CONFIG_LIBDIR 强制只搜索交叉编译库目录
           # 不使用 PKG_CONFIG_PATH，因为它会同时搜索系统目录
           export PKG_CONFIG_LIBDIR="${OPT_DIR}/lib/pkgconfig"
@@ -952,8 +952,7 @@ jobs:
           cd "${SOURCE_CODE_DIR}/python"
           run "python autogen" autoreconf -fi
           cd "${BUILD_DIR}/python-build"
-          run "python configure" ＇CFLAGS="-include io.h -Wno-error=implicit-function-declaration" \
-${SOURCE_CODE_DIR}/python/configure＇ \
+          run "python configure" "${SOURCE_CODE_DIR}/python/configure" \
             --build="${BUILD}" \
             --host="${HOST}" \
             --prefix="${PY_IN_DIR}" \
@@ -967,8 +966,7 @@ ${SOURCE_CODE_DIR}/python/configure＇ \
             CXXFLAGS="${CXXFLAGS}" \
             CPPFLAGS="${CPPFLAGS}" \
             LDFLAGS="${LDFLAGS}"
-          run "python make" ＇make -j$(nproc) CFLAGS="-include io.h -Wno-error=implicit-function-declaration"＇
-
+          run "python make" make -j$(nproc)
           run "python make install" make install
 
           ls -l "${PY_IN_DIR}/bin"
