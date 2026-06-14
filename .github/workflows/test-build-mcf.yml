@@ -197,6 +197,29 @@ jobs:
           run "解压 sqlite 源码" archive_extract sqlite "${SOURCE_CODE_DIR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz" "${SOURCE_CODE_DIR}"
           run "git clone cpython-mingw source code" git clone -b mingw-v${PYTHON_VERSION} https://github.com/msys2-contrib/cpython-mingw.git "${SOURCE_CODE_DIR}/python"
           info "下载与解压步骤完成"
+
+          echo "下载mcfgthread"
+          cd "${SOURCE_CODE_DIR}"
+          git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
+
+      - name: Patch Source Code
+        shell: bash
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GCC_VERSION: ${{ github.event.inputs.gcc-version }}
+        run: |
+          set -euo pipefail
+          source "${GITHUB_WORKSPACE}/scripts/functions/functions.sh"
+          # tuning
+          export LOG_DIR="${GITHUB_WORKSPACE}/cross-logs"
+          export FORCE_COLOR=1
+          mkdir -p "${LOG_DIR}"
+          IGNORE_REGEX='array subscript 0 is outside array bounds'
+          LOG_TAIL_LINES=120
+          FAIL_ON_FATAL_IN_SUCCESS=1
+
+          export SOURCE_CODE_DIR="${GITHUB_WORKSPACE}/source-code"
+
           info "Patch The GCC"
           cd "${SOURCE_CODE_DIR}/gcc"
           patch -p1 < "${GITHUB_WORKSPACE}/patches/gcc-14.1.0-libgomp-add-mcf-support.patch"
@@ -208,11 +231,22 @@ jobs:
           export AUTOM4TE=autom4te2.69
 
           autoconf2.69 && autoheader2.69
-          head -5 configure
-          grep LIBGOMP_USE_MCFGTHREAD config.h.in
-          echo "下载mcfgthread"
-          cd "${SOURCE_CODE_DIR}"
-          git clone https://github.com/lhmouse/mcfgthread.git mcfgthread
+
+          export PATH="$OLD_PATH"
+
+          cd "${SOURCE_CODE_DIR}/zlib"
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
+
+          cd ${SOURCE_CODE_DIR}/readline
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
+
+          cd ${SOURCE_CODE_DIR}/gdbm
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
+          autoreconf -fi
+
+          cd ${SOURCE_CODE_DIR}/sqlite
+          run "sqlite autoreconf" autoreconf -fi
+
 
 
       - name: Build cross
@@ -249,14 +283,6 @@ jobs:
           export BUILD="x86_64-pc-linux-gnu"
           export HOST="x86_64-pc-linux-gnu"
           export TARGET="x86_64-w64-mingw32"
-
-          pkgs=( binutils libiconv make termcap ncurses readline gdbm gdb python openssl sqlite ninja cmake libffi pkgconf expat )
-          info "准备清理环境变量"
-          for p in "${pkgs[@]}"; do
-            val="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
-            unset "${val}"
-          done
-          unset MINGW_W64 gcc_version
 
           # binutils
           run "构建 binutils: configure" mkdir -p "${BUILD_DIR}/binutils-build"
@@ -471,7 +497,7 @@ jobs:
 
           # =========== build zlib static ======================
           cd "${SOURCE_CODE_DIR}/zlib"
-          patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
+          # patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
           run "zlib: build and install" make -f win32/Makefile.gcc install \
             HOST="${HOST}" \
             SHARED_MODE=1 \
@@ -678,7 +704,6 @@ jobs:
           run "gcc stage2: make install" make install-strip
           # cp "${TARGET_DIR}/bin/libwinpthread-1.dll" "${PREFIX}/bin"
           cp "${TARGET_DIR}/bin/libmcfgthread-2.dll" "${PREFIX}/bin"
-          # cp "${TARGET_DIR}/bin/libmcfgthread-2.dll" "${PREFIX}/bin"
 
           export BASE_CFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
           export BASE_CXXFLAGS="-O2 -pipe -fno-ident -I${TARGET_DIR}/include -I${OPT_DIR}/include"
@@ -754,7 +779,7 @@ jobs:
             --enable-term-driver --enable-interop --enable-widec --without-trace \
             --disable-shared --enable-static \
             CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ACCESS" \
-            CXXFLAGS="${BASE_CXXFLAGS}" \
+            CXXFLAGS="${BASE_CXXFLAGS} -std=c++17" \
             CPPFLAGS="${BASE_CPPFLAGS}" \
             LDFLAGS="${BASE_LDFLAGS}"
 
@@ -763,14 +788,13 @@ jobs:
 
           # readline
           run "准备 readline build dir" mkdir -p "${BUILD_DIR}/readline-build"
-          cd ${SOURCE_CODE_DIR}/readline && patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
           cd "${BUILD_DIR}/readline-build"
           run "readline configure" "${SOURCE_CODE_DIR}/readline/configure" \
             --host="${HOST}" \
             --build="${BUILD}" \
             --target="${TARGET}" \
             --prefix="${OPT_DIR}" --disable-shared --enable-static --without-curses \
-            CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            CFLAGS="${BASE_CFLAGS} -std=gnu17 -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CXXFLAGS="${BASE_CXXFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CPPFLAGS="${BASE_CPPFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             LDFLAGS="${BASE_LDFLAGS}"
@@ -779,15 +803,13 @@ jobs:
 
           # gdbm
           run "gdbm build dir mk" mkdir -p "${BUILD_DIR}/gdbm-build"
-          cd ${SOURCE_CODE_DIR}/gdbm && patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
-          autoreconf -fi
           cd "${BUILD_DIR}/gdbm-build"
           run "gdbm configure" "${SOURCE_CODE_DIR}/gdbm/configure" \
             --host="${HOST}" \
             --build="${BUILD}" \
             --target="${TARGET}" \
             --prefix="${OPT_DIR}" --disable-shared --enable-static --enable-libgdbm-compat \
-            CFLAGS="${BASE_CFLAGS} -fcommon" \
+            CFLAGS="${BASE_CFLAGS} -fcommon -std=gnu17" \
             CXXFLAGS="${BASE_CXXFLAGS}" \
             CPPFLAGS="${BASE_CPPFLAGS}" \
             LDFLAGS="${BASE_LDFLAGS}"
@@ -833,8 +855,6 @@ jobs:
 
           #sqlite
           run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
-          cd ${SOURCE_CODE_DIR}/sqlite
-          run "sqlite autoreconf" autoreconf -fi
           cd "${BUILD_DIR}/sqlite-build"
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
@@ -1061,7 +1081,7 @@ jobs:
             --enable-64-bit-bfd --disable-nls \
             --disable-werror --disable-win32-registry \
             --disable-rpath \
-            CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -fcommon -D_WIN32_WINNT=0x0601" \
+            CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -std=gnu17 -Wno-incompatible-pointer-types -Wno-return-mismatch -fcommon" \
             CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
             CPPFLAGS="${CPPFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
             LDFLAGS="${LDFLAGS}"
