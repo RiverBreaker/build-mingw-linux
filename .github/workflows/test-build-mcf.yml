@@ -493,6 +493,7 @@ jobs:
             DEP_FLAGS=""
             if [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
+              CFLAGS="${CFLAGS} -std=gnu17"
             elif [[ "$d" == "mpc" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
             elif [[ "$d" == "isl" ]]; then
@@ -506,7 +507,7 @@ jobs:
               ${DEP_FLAGS} \
               --enable-static \
               --disable-shared \
-              CFLAGS="${CFLAGS} -std=gnu17" \
+              CFLAGS="${CFLAGS}" \
               CXXFLAGS="${CXXFLAGS}" \
               LDFLAGS="${LDFLAGS}" \
               CPPFLAGS="${CPPFLAGS}"
