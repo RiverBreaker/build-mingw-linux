@@ -491,7 +491,9 @@ jobs:
             cd "${BUILD_DIR}/${d}-build"
 
             DEP_FLAGS=""
-            if [[ "$d" == "mpfr" ]]; then
+            if [[ "$d" == "gmp" ]]; then
+              DEP_FLAGS="--disable-assembly"
+            elif [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
@@ -850,28 +852,13 @@ jobs:
           run "sqlite make" make -j$(nproc)
           run "sqlite install" make install
 
-          cd "${PREFIX}" || exit 1
-
-          echo "== Strip exe / dll =="
-          find . -type f \( -name '*.exe' -o -name '*.dll' \) -print0 |
-            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-unneeded || true
-
-          echo "== Strip static libraries =="
-          find . -type f -name '*.a' -print0 |
-            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-debug || true
-
-          echo "== Remove libtool artifacts =="
-          find . -type f -name '*.la' -delete
-
-          echo "== Remove stray debug files (if any) =="
-          find . -type f -name '*.debug' -delete
-
       - name: upload logs
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-native-logs
           path: "${{ github.workspace }}/native-logs"
+
       - name: upload logs
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
@@ -925,7 +912,7 @@ jobs:
           IGNORE_REGEX='array subscript 0 is outside array bounds'
           LOG_TAIL_LINES=300
           FAIL_ON_FATAL_IN_SUCCESS=1
-          grep -n '_chsize' "${CROSS_PREFIX}/x86_64-w64-mingw32/include/io.h"
+
 
           # 创建所有必要的目录
           for d in "${BUILD_DIR}"; do
@@ -971,7 +958,6 @@ jobs:
             CXXFLAGS="${CXXFLAGS}" \
             CPPFLAGS="${CPPFLAGS}" \
             LDFLAGS="${LDFLAGS}"
-          echo '#include <io.h>' | ${CROSS_PREFIX}/bin/${HOST}-gcc -E -x c - 2>/dev/null | grep '_chsize'
           run "python make" make -j$(nproc)
           run "python make install" make install
 
@@ -1088,6 +1074,22 @@ jobs:
           }
           $CC -o $PREFIX/bin/gdb.exe $GITHUB_WORKSPACE/scripts/gdb-wrapper.c -U_DEBUG
           cp $PREFIX/lib/libgcc_s_seh-1.dll $PREFIX/bin/
+
+          cd "${PREFIX}" || exit 1
+
+          echo "== Strip exe / dll =="
+          find . -type f \( -name '*.exe' -o -name '*.dll' \) -print0 |
+            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-unneeded || true
+
+          echo "== Strip static libraries =="
+          find . -type f -name '*.a' -print0 |
+            xargs -0 -n1 "${CROSS_PREFIX}/bin/${TARGET}-strip" --strip-debug || true
+
+          echo "== Remove libtool artifacts =="
+          find . -type f -name '*.la' -delete
+
+          echo "== Remove stray debug files (if any) =="
+          find . -type f -name '*.debug' -delete
 
       - name: upload gdb logs
         if: always() || cancelled() || failure()
