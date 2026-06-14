@@ -492,7 +492,8 @@ jobs:
 
             DEP_FLAGS=""
             if [[ "$d" == "gmp" ]]; then
-              DEP_FLAGS="--disable-assembly gmp_cv_prog_cc_works=yes"
+              export gmp_cv_prog_cc_works=yes
+              DEP_FLAGS="--disable-assembly"
             elif [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
@@ -515,6 +516,7 @@ jobs:
 
             run "${d}: make" make -j$(nproc)
             run "${d}: make install" make install
+            unset gmp_cv_prog_cc_works
           done
 
           # =========== 3. mingw-w64 头文件 (安装到 ${TARGET_DIR}) ===========
@@ -863,7 +865,7 @@ jobs:
         if: always() || cancelled() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-native-libgomp-logs
+          name: build-native-gmp-logs
           path: "${{ github.workspace }}/build-native/gmp-build"
 
       - name: upload native toolchain
