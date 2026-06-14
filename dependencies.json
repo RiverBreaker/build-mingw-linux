@@ -12,22 +12,22 @@
         "libffi": "3.4.7",
         "gdbm": "1.19",
         "sqlite": {
-          "year": "2023",
-          "version": "3410000"
+          "year": "2025",
+          "version": "3490000"
         },
-        "openssl": "3.2.0",
-        "python_version": "3.12.5",
-        "bzip2_ver":"1.0.8",
-        "expat": "2.5.0",
-        "ncurses": "6.5",
-        "readline":"8.2",
+        "openssl": "3.4.0",
+        "python_version": "3.12.12",
+        "bzip2_ver": "1.0.8",
+        "expat": "2.6.4",
+        "ncurses": "6.6",
+        "readline": "8.3",
         "xz": "5.8.2",
-        "gdb": "13.2",
+        "gdb": "16.1",
         "make": "4.4.1",
-        "cmake": "3.27.5",
-        "pkgconf": "2.5.0",
-        "ninja": "1.11.1",
-		"meson_ver":"1.11.1"
+        "cmake": "3.31.6",
+        "pkgconf": "2.5.1",
+        "ninja": "1.12.1",
+        "meson_ver": "1.11.1"
       }
     },
 	"14.3.0": {

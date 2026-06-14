@@ -237,9 +237,9 @@ jobs:
           info "Patch The Zlib"
           cd "${SOURCE_CODE_DIR}/zlib"
           patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
-          info "Patch The readline"
-          cd ${SOURCE_CODE_DIR}/readline
-          patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
+          # info "Patch The readline"
+          # cd ${SOURCE_CODE_DIR}/readline
+          # patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
           info "Patch The gdbm"
           cd ${SOURCE_CODE_DIR}/gdbm
           patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
@@ -770,7 +770,7 @@ jobs:
             --prefix="${OPT_DIR}" \
             --host="${HOST}" \
             --build="${BUILD}" \
-            --without-ada --without-cxx \
+            --without-ada --with-cxx \
             --without-pthread --enable-pc-files \
             --with-pkg-config \
             --with-pkg-config-libdir=${OPT_DIR}/lib/pkgconfig \
@@ -781,7 +781,7 @@ jobs:
             --enable-term-driver --enable-interop --enable-widec --without-trace \
             --disable-shared --enable-static \
             CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ACCESS" \
-            CXXFLAGS="${BASE_CXXFLAGS} -std=c++17" \
+            CXXFLAGS="${BASE_CXXFLAGS}" \
             CPPFLAGS="${BASE_CPPFLAGS}" \
             LDFLAGS="${BASE_LDFLAGS}"
 
@@ -796,7 +796,7 @@ jobs:
             --build="${BUILD}" \
             --target="${TARGET}" \
             --prefix="${OPT_DIR}" --disable-shared --enable-static --without-curses \
-            CFLAGS="${BASE_CFLAGS} -std=gnu17 -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CXXFLAGS="${BASE_CXXFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CPPFLAGS="${BASE_CPPFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             LDFLAGS="${BASE_LDFLAGS}"
@@ -1083,7 +1083,7 @@ jobs:
             --enable-64-bit-bfd --disable-nls \
             --disable-werror --disable-win32-registry \
             --disable-rpath \
-            CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -std=gnu17 -Wno-incompatible-pointer-types -Wno-return-mismatch -fcommon" \
+            CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -fcommon" \
             CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
             CPPFLAGS="${CPPFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
             LDFLAGS="${LDFLAGS}"
