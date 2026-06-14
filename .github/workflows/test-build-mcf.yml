@@ -491,10 +491,7 @@ jobs:
             cd "${BUILD_DIR}/${d}-build"
 
             DEP_FLAGS=""
-            if [[ "$d" == "gmp" ]]; then
-              export gmp_cv_prog_cc_works=yes
-              DEP_FLAGS="--disable-assembly"
-            elif [[ "$d" == "mpfr" ]]; then
+            if [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
@@ -509,14 +506,13 @@ jobs:
               ${DEP_FLAGS} \
               --enable-static \
               --disable-shared \
-              CFLAGS="${CFLAGS}" \
+              CFLAGS="${CFLAGS} -std=gnu17" \
               CXXFLAGS="${CXXFLAGS}" \
               LDFLAGS="${LDFLAGS}" \
               CPPFLAGS="${CPPFLAGS}"
 
             run "${d}: make" make -j$(nproc)
             run "${d}: make install" make install
-            unset gmp_cv_prog_cc_works
           done
 
           # =========== 3. mingw-w64 头文件 (安装到 ${TARGET_DIR}) ===========
