@@ -861,7 +861,6 @@ jobs:
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
             --host="${HOST}" \
-            --target="${TARGET}" \
             --prefix="${OPT_DIR}" \
             --enable-threadsafe \
             --enable-shared \
@@ -1083,6 +1082,8 @@ jobs:
             --enable-64-bit-bfd --disable-nls \
             --disable-werror --disable-win32-registry \
             --disable-rpath \
+            --with-gmp="${PREFIX}" \
+            --with-mpfr="${PREFIX}" \
             CFLAGS="${CFLAGS} -I${OPT_DIR}/include/ncursesw -fcommon" \
             CXXFLAGS="${CXXFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
             CPPFLAGS="${CPPFLAGS} -I${OPT_DIR}/include/ncursesw -D__USE_MINGW_ANSI_STDIO=1 -D_WIN32_WINNT=0x0601" \
