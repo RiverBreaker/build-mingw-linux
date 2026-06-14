@@ -518,9 +518,10 @@ jobs:
             cd "${BUILD_DIR}/${d}-build"
 
             DEP_FLAGS=""
-            if [[ "$d" == "mpfr" ]]; then
-              DEP_FLAGS="--with-gmp=${PREFIX}"
+            if [[ "$d" == "gmp" ]]; then
               CFLAGS="${CFLAGS} -std=gnu17"
+            elif [[ "$d" == "mpfr" ]]; then
+              DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
             elif [[ "$d" == "isl" ]]; then
@@ -769,7 +770,7 @@ jobs:
             --prefix="${OPT_DIR}" \
             --host="${HOST}" \
             --build="${BUILD}" \
-            --without-ada --with-cxx \
+            --without-ada --without-cxx \
             --without-pthread --enable-pc-files \
             --with-pkg-config \
             --with-pkg-config-libdir=${OPT_DIR}/lib/pkgconfig \
