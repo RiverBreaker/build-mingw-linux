@@ -492,7 +492,7 @@ jobs:
 
             DEP_FLAGS=""
             if [[ "$d" == "gmp" ]]; then
-              DEP_FLAGS="--disable-assembly"
+              DEP_FLAGS="--disable-assembly gmp_cv_prog_cc_works=yes"
             elif [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
