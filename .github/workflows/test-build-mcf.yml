@@ -233,17 +233,18 @@ jobs:
           autoconf2.69 && autoheader2.69
 
           export PATH="$OLD_PATH"
-
+          unset ACLOCAL_PATH LIBTOOLIZE AUTOM4TE
+          info "Patch The Zlib"
           cd "${SOURCE_CODE_DIR}/zlib"
           patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
-
+          info "Patch The readline"
           cd ${SOURCE_CODE_DIR}/readline
           patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
-
+          info "Patch The gdbm"
           cd ${SOURCE_CODE_DIR}/gdbm
           patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
           autoreconf -fi
-
+          info "Patch The sqlite"
           cd ${SOURCE_CODE_DIR}/sqlite
           run "sqlite autoreconf" autoreconf -fi
 
