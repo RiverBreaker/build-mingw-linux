@@ -237,9 +237,9 @@ jobs:
           info "Patch The Zlib"
           cd "${SOURCE_CODE_DIR}/zlib"
           patch -p1 < "${GITHUB_WORKSPACE}/patches/zlib-makefile-gcc-use-standard-prefix.patch"
-          # info "Patch The readline"
-          # cd ${SOURCE_CODE_DIR}/readline
-          # patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
+          info "Patch The readline"
+          cd ${SOURCE_CODE_DIR}/readline
+          patch -p1 < "${GITHUB_WORKSPACE}/patches/readline-8.2-fix-mingw32.patch"
           info "Patch The gdbm"
           cd ${SOURCE_CODE_DIR}/gdbm
           patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"

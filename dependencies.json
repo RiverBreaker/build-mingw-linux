@@ -20,7 +20,7 @@
         "bzip2_ver": "1.0.8",
         "expat": "2.6.4",
         "ncurses": "6.6",
-        "readline": "8.3",
+        "readline": "8.2",
         "xz": "5.8.2",
         "gdb": "16.1",
         "make": "4.4.1",
