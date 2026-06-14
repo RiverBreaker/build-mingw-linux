@@ -864,7 +864,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-native-libgomp-logs
-          path: "${{ github.workspace }}/build-native/gcc2-build"
+          path: "${{ github.workspace }}/build-native/gmp-build"
 
       - name: upload native toolchain
         uses: actions/upload-artifact@v4
