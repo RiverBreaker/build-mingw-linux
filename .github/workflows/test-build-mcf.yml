@@ -796,7 +796,7 @@ jobs:
             --build="${BUILD}" \
             --target="${TARGET}" \
             --prefix="${OPT_DIR}" --disable-shared --enable-static --without-curses \
-            CFLAGS="${BASE_CFLAGS} -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
+            CFLAGS="${BASE_CFLAGS} -std=gnu17 -D__USE_MINGW_ANSI_STDIO=1 -fcommon -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CXXFLAGS="${BASE_CXXFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             CPPFLAGS="${BASE_CPPFLAGS} -DNCURSES_STATIC -D_WIN32_WINNT=0x0600" \
             LDFLAGS="${BASE_LDFLAGS}"
