@@ -865,11 +865,13 @@ jobs:
             --disable-threadsafe \
             --enable-shared \
             --disable-static \
+            --disable-load-extension \
             CFLAGS="${BASE_CFLAGS} -DSQLITE_THREADSAFE=1" \
             CXXFLAGS="${BASE_CXXFLAGS}" \
             CPPFLAGS="${BASE_CPPFLAGS} -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_RTREE" \
             LDFLAGS="${BASE_LDFLAGS}"
-          run "sqlite make" make -j$(nproc) CFLAGS="${BASE_CFLAGS} -DSQLITE_THREADSAFE=1"
+          run "sqlite make" make -j$(nproc) all
+          # CFLAGS="${BASE_CFLAGS} -DSQLITE_THREADSAFE=1"
           run "sqlite install" make install
 
       - name: upload logs
