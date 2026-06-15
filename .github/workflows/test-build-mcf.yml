@@ -244,9 +244,9 @@ jobs:
           cd ${SOURCE_CODE_DIR}/gdbm
           patch -p1 < "${GITHUB_WORKSPACE}/patches/gdbm-fix-support-win32.patch"
           autoreconf -fi
-          info "Patch The sqlite"
-          cd ${SOURCE_CODE_DIR}/sqlite
-          run "sqlite autoreconf" autoreconf -fi
+          # info "Patch The sqlite"
+          # cd ${SOURCE_CODE_DIR}/sqlite
+          # run "sqlite autoreconf" autoreconf -fi
 
 
 
