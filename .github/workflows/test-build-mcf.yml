@@ -862,12 +862,11 @@ jobs:
             --build="${BUILD}" \
             --host="${HOST}" \
             --prefix="${OPT_DIR}" \
-            --enable-threadsafe \
             --enable-shared \
             --disable-static \
             CFLAGS="${BASE_CFLAGS}" \
             CXXFLAGS="${BASE_CXXFLAGS}" \
-            CPPFLAGS="${BASE_CPPFLAGS} -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_RTREE" \
+            CPPFLAGS="${BASE_CPPFLAGS} -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE=1" \
             LDFLAGS="${BASE_LDFLAGS}"
           run "sqlite make" make -j$(nproc)
           run "sqlite install" make install
