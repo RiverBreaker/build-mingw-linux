@@ -856,8 +856,8 @@ jobs:
           run "xz make install" make install
 
           #sqlite
-          run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
-          cd "${BUILD_DIR}/sqlite-build"
+          # run "准备sqlite build dir" mkdir -p "${BUILD_DIR}/sqlite-build"
+          cd "${SOURCE_CODE_DIR}/sqlite"
           run "sqlite configure" "${SOURCE_CODE_DIR}/sqlite/configure" \
             --build="${BUILD}" \
             --host="${HOST}" \
