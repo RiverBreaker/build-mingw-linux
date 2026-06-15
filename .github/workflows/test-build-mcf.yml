@@ -520,8 +520,10 @@ jobs:
             DEP_FLAGS=""
             if [[ "$d" == "gmp" ]]; then
               GNU_F_17="-std=gnu17"
-              CFLAGS="${CFLAGS} ${GNU_F_17}"
-            elif [[ "$d" == "mpfr" ]]; then
+            else
+              GNU_F_17=""
+            fi
+            if [[ "$d" == "mpfr" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX}"
             elif [[ "$d" == "mpc" ]]; then
               DEP_FLAGS="--with-gmp=${PREFIX} --with-mpfr=${PREFIX}"
@@ -536,7 +538,7 @@ jobs:
               ${DEP_FLAGS} \
               --enable-static \
               --disable-shared \
-              CFLAGS="${CFLAGS}" \
+              CFLAGS="${CFLAGS} ${GNU_F_17}" \
               CXXFLAGS="${CXXFLAGS}" \
               LDFLAGS="${LDFLAGS}" \
               CPPFLAGS="${CPPFLAGS}"
@@ -544,7 +546,7 @@ jobs:
             run "${d}: make" make -j$(nproc)
             run "${d}: make install" make install
           done
-          unset GNU_F_17
+
           # =========== 3. mingw-w64 头文件 (安装到 ${TARGET_DIR}) ===========
           run "准备 mingw-headers build dir" mkdir -p "${BUILD_DIR}/mingw-headers-build"
           cd "${BUILD_DIR}/mingw-headers-build"
